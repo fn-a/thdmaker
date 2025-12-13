@@ -1,0 +1,9 @@
+[package]
+name = "thdmaker"
+version = "0.0.1"
+authors = ["fn-a <mr.fna.co@gmail.com>"]
+edition = "2024"
+description = "thdmaker project"
+license = "MIT"
+
+[dependencies]
