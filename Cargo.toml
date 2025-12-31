@@ -1,9 +1,30 @@
 [package]
 name = "thdmaker"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["fn-a <mr.fna.co@gmail.com>"]
 edition = "2024"
-description = "thdmaker project"
+description = "A comprehensive 3D file format library supporting AMF, STL, 3MF and other 3D manufacturing formats"
 license = "MIT"
 
 [dependencies]
+glob = "^0.3"
+thiserror = "^2.0"
+byteorder = "^1.5"
+base64 = "^0.22"
+
+[dependencies.serde]
+version = "^1.0"
+features = ["derive"]
+
+[dependencies.quick-xml]
+version = "^0.38"
+features = ["serialize", "overlapped-lists"]
+
+[dependencies.zip]
+version = "^7.0"
+default-features = false
+features = ["deflate"]
+
+[dependencies.uuid]
+version = "1.0"
+features = ["v4"]
