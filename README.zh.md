@@ -33,6 +33,14 @@ ISO-52915 标准
 - [维基百科：STL 格式](https://en.wikipedia.org/wiki/STL_(file_format))
 - [国会图书馆格式描述](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml)
 
+### G-code (数控编程)
+- [RepRap G-code](https://reprap.org/wiki/G-code)
+- [Marlin G-code 参考](https://marlinfw.org/meta/gcode)
+- [Klipper G-code 文档](https://www.klipper3d.org/G-Codes.html)
+- [LinuxCNC G-code 概览](https://linuxcnc.org/docs/html/gcode/overview.html)
+- [GRBL G-code 参考](https://github.com/gnea/grbl/wiki)
+- [NIST RS274NGC](https://www.nist.gov/publications/nist-rs274ngc-interpreter-version-3)
+
 ### STEP/STP (Standard for the Exchange of Product Data)
 ISO-10303 标准
 - [ISO 标准概览](https://www.iso.org/standard/83105.html)
@@ -93,3 +101,9 @@ cargo add thdmaker
 - [mozman/steputils](https://github.com/mozman/steputils)
 - [ricosjp/ruststep](https://github.com/ricosjp/ruststep)
 - [FreeCAD/FreeCAD](https://github.com/FreeCAD/FreeCAD)
+
+### GCODE等相关
+- [Michael-F-Bryan/gcode-rs](https://github.com/Michael-F-Bryan/gcode-rs)
+- [Slic3r/Slic3r](https://github.com/Slic3r/Slic3r)
+- [Klipper3d/klipper](https://github.com/Klipper3d/klipper)
+- [MarlinFirmware/Marlin](https://github.com/MarlinFirmware/Marlin)

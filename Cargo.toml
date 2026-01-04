@@ -1,6 +1,6 @@
 [package]
 name = "thdmaker"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["fn-a <mr.fna.co@gmail.com>"]
 edition = "2024"
 description = "A comprehensive 3D file format library supporting AMF, STL, 3MF and other 3D manufacturing formats"

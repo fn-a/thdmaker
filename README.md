@@ -33,6 +33,14 @@ ISO-52915 Standard
 - [Wikipedia: STL Format](https://en.wikipedia.org/wiki/STL_(file_format))
 - [Library of Congress Format Description](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml)
 
+### G-code (Numerical Control Programming)
+- [RepRap G-code](https://reprap.org/wiki/G-code)
+- [Marlin G-code Reference](https://marlinfw.org/meta/gcode)
+- [Klipper G-code Documentation](https://www.klipper3d.org/G-Codes.html)
+- [LinuxCNC G-code Overview](https://linuxcnc.org/docs/html/gcode/overview.html)
+- [GRBL G-code Reference](https://github.com/gnea/grbl/wiki)
+- [NIST RS274NGC Interpreter](https://www.nist.gov/publications/nist-rs274ngc-interpreter-version-3)
+
 ### STEP/STP (Standard for the Exchange of Product Data)
 ISO-10303 Standard
 - [ISO Standard Overview](https://www.iso.org/standard/83105.html)
@@ -93,3 +101,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [mozman/steputils](https://github.com/mozman/steputils)
 - [ricosjp/ruststep](https://github.com/ricosjp/ruststep)
 - [FreeCAD/FreeCAD](https://github.com/FreeCAD/FreeCAD)
+
+### GCODE related and etc
+- [Michael-F-Bryan/gcode-rs](https://github.com/Michael-F-Bryan/gcode-rs)
+- [Slic3r/Slic3r](https://github.com/Slic3r/Slic3r)
+- [Klipper3d/klipper](https://github.com/Klipper3d/klipper)
+- [MarlinFirmware/Marlin](https://github.com/MarlinFirmware/Marlin)
