@@ -116,6 +116,16 @@ impl Model {
         self.resources.objects.iter_mut().find(|o| o.id == id)
     }
 
+    /// Get all objects of a specific type.
+    pub fn get_objects(&self, objt: ObjectType) -> Vec<&Object> {
+        self.resources.objects.iter().filter(|o| o.r#type == objt).collect()
+    }
+
+    /// Get all mutable objects of a specific type.
+    pub fn get_objects_mut(&mut self, objt: ObjectType) -> Vec<&mut Object> {
+        self.resources.objects.iter_mut().filter(|o| o.r#type == objt).collect()
+    }
+
     /// Get base materials by ID.
     pub fn get_base_material(&self, id: u32) -> Option<&BaseMaterials> {
         self.resources.base_materials.iter().find(|m| m.id == id)
@@ -403,6 +413,17 @@ impl Build {
             metadata_group: MetadataGroup::new(),
         });
         self
+    }
+
+    pub fn get_transform(&self, object_id: u32) -> Option<&Matrix3D> {
+        let mut trans = None;
+        for item in &self.items {
+            if item.object_id == object_id {
+                trans = item.transform.as_ref();
+                break;
+            }
+        }
+        trans
     }
 }
 

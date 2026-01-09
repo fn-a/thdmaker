@@ -3,10 +3,10 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::fmt::{Display, Formatter, Result};
+use crate::util::path::*;
 use super::model::*;
 use super::primitive::*;
 use super::securecontent::KeyStore;
-use super::path::*;
 
 /// A 3MF package containing the model and associated resources.
 #[derive(Debug, Clone, Default)]

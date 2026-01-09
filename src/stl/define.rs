@@ -1,3 +1,4 @@
+use std::iter;
 use std::fmt::{Display, Formatter, Result};
 
 /// Triangle mesh.
@@ -11,7 +12,7 @@ pub struct Mesh {
     pub start: usize,
     /// Mesh all triangle vertices for indices.
     pub vertices: Vec<Vertex>,
-    /// Mesh triangle vertex indices 
+    /// Mesh triangle vertex indices.
     pub indices: Vec<[usize; 3]>,
     /// Mesh triangle normals.
     pub normals: Vec<Vertex>,
@@ -31,6 +32,26 @@ impl Mesh {
             normal: self.normals[i],
             vertices: [self.vertices[v[0]], self.vertices[v[1]], self.vertices[v[2]]],
         }).collect()
+    }
+
+    pub fn get_positions(&self) -> Vec<[f32; 3]> {
+        self.vertices.iter().map(|v| {
+            // Convert Z-up coordinates to Y-up coordinates
+            // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+            [v.x, v.z, -v.y]
+        }).collect()
+    }
+
+    pub fn get_normals(&self) -> Vec<[f32; 3]> {
+        self.normals.iter().flat_map(|v| {
+            // Convert Z-up coordinates to Y-up coordinates
+            // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+            iter::repeat([v.x, v.z, -v.y]).take(3)
+        }).collect()
+    }
+
+    pub fn get_indices(&self) -> Vec<u32> {
+        self.indices.iter().flat_map(|v| [v[0] as u32, v[1] as u32, v[2] as u32]).collect()
     }
 }
 
@@ -78,6 +99,12 @@ impl From<&[f32; 3]> for Vertex {
             y: xyz[1],
             z: xyz[2],
         }
+    }
+}
+
+impl From<&Vertex> for [f32; 3] {
+    fn from(v: &Vertex) -> Self {
+        [v.x, v.y, v.z]
     }
 }
 

@@ -4,11 +4,11 @@ use quick_xml::events::Event;
 use quick_xml::Reader;
 use zip::read::ZipArchive;
 use glob::Pattern;
+use crate::util::path::*;
 use super::error::{Error, Result};
 use super::define::package::*;
 use super::define::model::*;
 use super::define::securecontent::KeyStore;
-use super::path::*;
 
 impl Package {
     /// Read a 3MF package from a reader.
@@ -18,6 +18,8 @@ impl Package {
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
+            if file.is_dir() {  continue; }
+
             let name = file.name().to_string();
             let path = absolute(&name, None);
 

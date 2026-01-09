@@ -4,7 +4,6 @@ use std::path::Path;
 use super::error::Result;
 use super::define::package::Package;
 
-pub use super::path;
 pub use super::error;
 pub use super::define;
 

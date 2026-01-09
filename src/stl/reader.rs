@@ -117,10 +117,10 @@ pub fn read_ascii<R: BufRead>(reader: &mut R) -> Result<Vec<Mesh>> {
                 let _ = predict(extract(lines.next())?, "endloop")?;
                 let _ = predict(extract(lines.next())?, "endfacet")?;
 
-                let idxlen = meshs[meshi].indices.len();
+                let idxlen = meshs[meshi].vertices.len();
                 meshs[meshi].indices.push([idxlen - 3, idxlen - 2, idxlen - 1]);
             } else {
-                let _ = predict(extract(lines.next())?, "endsolid")?;
+                let _ = predict(line, "endsolid")?;
                 meshi += 1;
                 break;
             }
@@ -174,7 +174,7 @@ pub fn read_binary<R: BufRead>(reader: &mut R) -> Result<Vec<Mesh>> {
             let v = Vertex::from(&[vx, vy, vz]);
             mesh.vertices.push(v);
         }
-        let idxlen = mesh.indices.len();
+        let idxlen = mesh.vertices.len();
         mesh.indices.push([idxlen - 3, idxlen - 2, idxlen - 1]);
         // read attribute byte count (Usually 0)
         let attr = cursor.read_u16::<LittleEndian>()?;

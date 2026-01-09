@@ -34,6 +34,7 @@ ISO-52915 Standard
 - [Library of Congress Format Description](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml)
 
 ### G-code (Numerical Control Programming)
+- [Wikipedia: G-code](https://en.wikipedia.org/wiki/G-code)
 - [RepRap G-code](https://reprap.org/wiki/G-code)
 - [Marlin G-code Reference](https://marlinfw.org/meta/gcode)
 - [Klipper G-code Documentation](https://www.klipper3d.org/G-Codes.html)

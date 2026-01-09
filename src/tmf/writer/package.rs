@@ -3,7 +3,7 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, Event};
 use quick_xml::Writer;
-use crate::tmf::path::normalize;
+use crate::util::path::normalize;
 use super::error::Result;
 use super::define::package::*;
 

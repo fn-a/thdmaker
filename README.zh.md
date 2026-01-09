@@ -33,7 +33,8 @@ ISO-52915 标准
 - [维基百科：STL 格式](https://en.wikipedia.org/wiki/STL_(file_format))
 - [国会图书馆格式描述](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml)
 
-### G-code (数控编程)
+### G-code (Numerical Control Programming)
+- [维基百科：G-code](https://en.wikipedia.org/wiki/G-code)
 - [RepRap G-code](https://reprap.org/wiki/G-code)
 - [Marlin G-code 参考](https://marlinfw.org/meta/gcode)
 - [Klipper G-code 文档](https://www.klipper3d.org/G-Codes.html)

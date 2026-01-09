@@ -340,6 +340,99 @@ impl Mesh {
     pub fn ball_count(&self) -> usize {
         self.beam_lattice.as_ref().map_or(0, |l| l.balls.balls.len())
     }
+
+    /// Get vertex positions as f32 array.
+    pub fn get_positions(&self) -> Vec<[f32; 3]> {
+        self.vertices.vertices.iter().map(|v| {
+            // Convert Z-up coordinates to Y-up coordinates
+            // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+            [v.x as f32, v.z as f32, -v.y as f32]
+        }).collect()
+    }
+
+    ///  Get vertex normals from triangles as f32 array.
+    pub fn get_normals(&self) -> Vec<[f32; 3]> {
+        let vertices = &self.vertices.vertices;
+        let triangles = &self.triangles.triangles;
+        let mut normals = vec![[0.0f32; 3]; vertices.len()];
+        let mut counts = vec![0usize; vertices.len()];
+
+        for triangle in triangles {
+            if let (Some(v1), Some(v2), Some(v3)) = (
+                vertices.get(triangle.v1 as usize),
+                vertices.get(triangle.v2 as usize),
+                vertices.get(triangle.v3 as usize),
+            ) {
+                // Calculate triangle normal using cross product
+                let edge1 = (
+                    v2.x - v1.x,
+                    v2.y - v1.y,
+                    v2.z - v1.z,
+                );
+                let edge2 = (
+                    v3.x - v1.x,
+                    v3.y - v1.y,
+                    v3.z - v1.z,
+                );
+
+                let normal = (
+                    edge1.1 * edge2.2 - edge1.2 * edge2.1,
+                    edge1.2 * edge2.0 - edge1.0 * edge2.2,
+                    edge1.0 * edge2.1 - edge1.1 * edge2.0,
+                );
+
+                // Normalize
+                let len = (normal.0 * normal.0 + normal.1 * normal.1 + normal.2 * normal.2).sqrt();
+                if len > 0.0 {
+                    let normal = (
+                        normal.0 / len,
+                        normal.1 / len,
+                        normal.2 / len,
+                    );
+
+                    // Add to each vertex
+                    for idx in [triangle.v1, triangle.v2, triangle.v3] {
+                        let idx = idx as usize;
+                        normals[idx][0] += normal.0 as f32;
+                        normals[idx][1] += normal.1 as f32;
+                        normals[idx][2] += normal.2 as f32;
+                        counts[idx] += 1;
+                    }
+                }
+            }
+        }
+
+        // Average normals
+        for i in 0..normals.len() {
+            if counts[i] > 0 {
+                normals[i][0] /= counts[i] as f32;
+                normals[i][1] /= counts[i] as f32;
+                normals[i][2] /= counts[i] as f32;
+
+                // Normalize again
+                let len = (normals[i][0] * normals[i][0] + normals[i][1] * normals[i][1] + normals[i][2] * normals[i][2]).sqrt();
+                if len > 0.0 {
+                    normals[i][0] /= len;
+                    normals[i][1] /= len;
+                    normals[i][2] /= len;
+                }
+
+                // Convert Z-up coordinates to Y-up coordinates
+                // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+                let [x, y, z] = normals[i];
+                normals[i][0] = x;
+                normals[i][1] = z;
+                normals[i][2] = -y;
+            }
+        }
+
+        normals
+    }
+
+    /// Get triangle indices.
+    pub fn get_indices(&self) -> Vec<u32> {
+        self.triangles.triangles.iter().flat_map(|t| [t.v1, t.v2, t.v3]).collect()
+    }
 }
 
 /// Bounding box defined by min and max corners.
@@ -389,7 +482,7 @@ pub enum Unit {
 
 impl Unit {
     /// Convert a value from this unit to millimeters.
-    pub fn millimeter_into(&self, value: f64) -> f64 {
+    pub fn millimeter_into(&self, value: f32) -> f32 {
         match self {
             Unit::Micron => value * 0.001,
             Unit::Millimeter => value,
@@ -401,7 +494,7 @@ impl Unit {
     }
 
     /// Convert a value from millimeters to this unit.
-    pub fn millimeter_from(&self, value: f64) -> f64 {
+    pub fn millimeter_from(&self, value: f32) -> f32 {
         match self {
             Unit::Micron => value * 1000.0,
             Unit::Millimeter => value,
@@ -640,21 +733,16 @@ impl Matrix3D {
             + self.m0[2] * (self.m1[0] * self.m2[1] - self.m1[1] * self.m2[0])
     }
 
-    /// Check if this is an identity matrix.
-    pub fn is_identity(&self) -> bool {
-        const EPSILON: f64 = 1e-10;
-        (self.m0[0] - 1.0).abs() < EPSILON
-            && self.m0[1].abs() < EPSILON
-            && self.m0[2].abs() < EPSILON
-            && self.m1[0].abs() < EPSILON
-            && (self.m1[1] - 1.0).abs() < EPSILON
-            && self.m1[2].abs() < EPSILON
-            && self.m2[0].abs() < EPSILON
-            && self.m2[1].abs() < EPSILON
-            && (self.m2[2] - 1.0).abs() < EPSILON
-            && self.m3[0].abs() < EPSILON
-            && self.m3[1].abs() < EPSILON
-            && self.m3[2].abs() < EPSILON
+    /// Converts the Z-up transform to a Y-up 4x4 column-major matrix.
+    pub fn matrix_array_4x4(&self) -> [f32; 16] {
+        [
+            self.m0[0] as f32, self.m0[1] as f32, self.m0[2] as f32, 0.0,
+            self.m1[0] as f32, self.m1[1] as f32, self.m1[2] as f32, 0.0,
+            self.m2[0] as f32, self.m2[1] as f32, self.m2[2] as f32, 0.0,
+            // Convert Z-up coordinates to Y-up coordinates
+            // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+            self.m3[0] as f32, self.m3[2] as f32, -self.m3[1] as f32, 1.0,
+        ]
     }
 
     /// Transform a point using this matrix.

@@ -86,6 +86,31 @@ pub struct Vertices {
     pub edges: Vec<Edge>,
 }
 
+impl Vertices {
+    pub fn get_positions(&self) -> Vec<[f32; 3]> {
+        self.vertices.iter()
+            .map(|v| {
+                let coord = &v.coordinates;
+                // Convert Z-up coordinates to Y-up coordinates
+                // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+                [coord.x as f32, coord.z as f32, -coord.y as f32]
+            })
+            .collect()
+    }
+
+    pub fn get_normals(&self) -> Vec<[f32; 3]> {
+        self.vertices.iter().map(|v| {
+            if let Some(normal) = v.normals.first() {
+                // Convert Z-up coordinates to Y-up coordinates
+                // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+                [normal.nx as f32, normal.nz as f32, -normal.ny as f32]
+            } else {
+                [0.0, 0.0, 0.0]
+            }
+        }).collect()
+    }
+}
+
 /// Vertex
 #[derive(Debug, Clone, Default)]
 pub struct Vertex {
@@ -152,6 +177,14 @@ pub struct Volume {
     pub triangles: Vec<Triangle>,
     // Can be empty
     pub colors: Vec<Color>,
+}
+
+impl Volume {
+    pub fn get_indices(&self) -> Vec<u32> {
+        self.triangles.iter()
+            .flat_map(|t| [t.v1, t.v2, t.v3])
+            .collect()
+    }
 }
 
 /// Volume Type

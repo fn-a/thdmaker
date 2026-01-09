@@ -1,5 +1,4 @@
 pub use super::error;
-pub use super::path;
 
 pub mod model;
 pub mod package;

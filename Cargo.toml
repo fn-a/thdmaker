@@ -1,6 +1,6 @@
 [package]
 name = "thdmaker"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["fn-a <mr.fna.co@gmail.com>"]
 edition = "2024"
 description = "A comprehensive 3D file format library supporting AMF, STL, 3MF and other 3D manufacturing formats"
@@ -26,5 +26,12 @@ default-features = false
 features = ["deflate"]
 
 [dependencies.uuid]
-version = "1.0"
+version = "^1.0"
 features = ["v4"]
+
+[dependencies.clap]
+version = "^4.5"
+features = ["derive"]
+
+[dependencies.bevy]
+version = "^0.17"
