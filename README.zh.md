@@ -1,20 +1,20 @@
-# THD Maker - 3D 文件格式库
-
-一个全面的 Rust 库，用于处理各种 3D 制造文件格式，包括 3MF、AMF、STL、STEP (STP) 和 OBJ。
+# THD Maker - 3D打印创作
+一个基于Bevy的 3D 打印设计软件。
 
 ## 概述
 
-THD Maker 是一个功能强大的库，专为读取、写入和操作 3D 制造文件格式而设计。该库基于 Rust 的安全性和性能构建。
+THD Maker 是一个功能强大的应用，专为 3D 打印工作流设计，包括 3MF、AMF、STL 等文件读写、预览、切片和 GCode 生成。基于 Rust 和 Bevy 构建，确保安全性和高性能。
 
 ## 特性
 
-- **多格式支持**：全面支持主流 3D 制造格式
+- **多格式支持**：全面支持主流 3D 制造格式（3MF、AMF、STL）
 - **高性能**：利用 Rust 的零成本抽象实现最佳性能
 - **内存安全**：基于 Rust 的所有权模型构建，防止内存相关错误
 - **可扩展设计**：模块化架构，便于轻松添加新格式
 - **跨平台**：支持 Windows、macOS 和 Linux
+- **3D 设计软件**：基于 Bevy 的 3D 打印设计应用，支持文件读写、预览、切片和 GCode 生成
 
-## 支持的格式
+## 文件格式参考
 
 ### 3MF (3D Manufacturing Format)
 - [3MF 规范](https://3mf.io/spec/)
@@ -64,13 +64,6 @@ ISO-10303 标准
 ## 安装
 
 将以下内容添加到您的 `Cargo.toml` 中：
-
-```toml
-[dependencies]
-thdmaker = "0.0.1"
-```
-
-或者运行：
 
 ```bash
 cargo add thdmaker

@@ -3,6 +3,7 @@ name = "thdmaker"
 version = "0.0.4"
 authors = ["fn-a <mr.fna.co@gmail.com>"]
 edition = "2024"
+repository = "https://github.com/fn-a/thdmaker"
 description = "A comprehensive 3D file format library supporting AMF, STL, 3MF and other 3D manufacturing formats"
 license = "MIT"
 

@@ -1,20 +1,21 @@
-# THD Maker - 3D File Format Library
+# THD Maker - 3D Printing Creation
 
-A comprehensive Rust library for handling various 3D manufacturing file formats including 3MF, AMF, STL, STEP (STP), and OBJ.
+A Bevy-based 3D printing design software.
 
 ## Overview
 
-THD Maker is a robust, easy-to-use library designed to read, write, and manipulate 3D manufacturing file formats. Built with Rust's safety and performance in mind.
+THD Maker is a robust, easy-to-use application designed for 3D printing workflows, including 3MF, AMF, STL formats file I/O, preview, slicing, and G-code generation. Built with Rust and Bevy for safety and performance.
 
 ## Features
 
-- **Multi-format Support**: Comprehensive support for major 3D manufacturing formats
+- **Multi-format Support**: Comprehensive support for major 3D manufacturing formats (3MF, AMF, STL)
 - **High Performance**: Leveraging Rust's zero-cost abstractions for optimal performance
 - **Memory Safe**: Built with Rust's ownership model to prevent memory-related bugs
 - **Extensible Design**: Modular architecture allowing easy addition of new formats
 - **Cross-platform**: Works on Windows, macOS, and Linux
+- **3D Design Software**: Bevy-based 3D printing design application with file I/O, preview, slicing, and G-code generation
 
-## Supported Formats
+## File Format Reference
 
 ### 3MF (3D Manufacturing Format)
 - [3MF Specification](https://3mf.io/spec/)
@@ -64,13 +65,6 @@ ISO-10303 Standard
 ## Installation
 
 Add this to your `Cargo.toml`:
-
-```toml
-[dependencies]
-thdmaker = "0.0.1"
-```
-
-Or run:
 
 ```bash
 cargo add thdmaker
