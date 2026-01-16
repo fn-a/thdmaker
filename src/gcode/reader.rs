@@ -61,29 +61,27 @@ enum Pattern {
 impl Pattern {
     fn produce(&self, line: &mut Line, keep: &Vec<char>) -> Result<()> {
         let word = keep.iter().collect::<String>();
-        let length = word.len();
         let letter = keep[0];
-        let number = if word.len() > 1 { word[1..].to_string() } else { "0".to_string() };
+        let number = if word.len() > 1 { &word[1..] } else { "" };
         match self {
             Pattern::Linenum => {
                 line.linenum = Some(number.parse()?);
             }
             Pattern::Command => {
-                let word = Word { letter, value: number.parse()?, length };
                 line.command = match letter {
                     'G' => {
-                        Command::GCode(word)
+                        Command::GCode(number.parse()?)
                     }
                     'M' => {
-                        Command::MCode(word)
+                        Command::MCode(number.parse()?)
                     }
                     _ => {
-                        Command::Other(word)
+                        Command::Other(letter, number.parse()?)
                     }
                 }
             }
             Pattern::Parameter => {
-                line.parameters.push(Word { letter, value: number.parse()?, length });
+                line.parameters.push(Word { letter, value: if number.is_empty() { None } else { Some(number.parse()?) } });
             }
             Pattern::Initial => {}
         };

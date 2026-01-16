@@ -35,4 +35,8 @@ pub enum Error {
     /// UTF-8 error.
     #[error("UTF-8 error: {0}")]
     Utf8Error(#[from] std::str::Utf8Error),
+
+    /// Unexpected error.
+    #[error("Unexpected error: {0}")]
+    UnexpectedError(String),
 }

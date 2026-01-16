@@ -18,16 +18,19 @@ impl Line {
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         // Line number
         if let Some(n) = self.linenum {
-            write!(writer, "N{}", n)?;
+            write!(writer, "N{} ", n)?;
         }
 
         // Command
         match &self.command {
-            Command::GCode(w) | Command::MCode(w) | Command::Other(w) => {
-                if self.linenum.is_some() {
-                    write!(writer, " ")?;
-                }
-                w.write(writer)?;
+            Command::GCode(v) => {
+                write!(writer, "G{v}")?;
+            }
+            Command::MCode(v) => {
+                write!(writer, "M{v}")?;
+            }
+            Command::Other(w, v) => {
+                write!(writer, "{w}{v}")?;
             }
             Command::None => {}
         }
@@ -62,8 +65,8 @@ impl Line {
 
 impl Word {
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        if self.length > 0 {
-            write!(writer, "{}{}", self.letter, self.value)?;
+        if let Some(v) = self.value {
+            write!(writer, "{}{}", self.letter, v)?;
         } else {
             write!(writer, "{}", self.letter)?;
         }

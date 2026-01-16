@@ -7,6 +7,7 @@ use thdmaker::viewer::{
     stl::{EXTENSIONS as STL_EXTS, StlPlugin, StlLabel},
     amf::{EXTENSIONS as AMF_EXTS, AmfPlugin, AmfLabel},
     tmf::{EXTENSIONS as TMF_EXTS, TmfPlugin, TmfLabel},
+    gcode::{EXTENSIONS as GCODE_EXTS, GCodePlugin, GCodeLabel},
 };
 
 #[derive(Parser, Debug)]
@@ -17,7 +18,7 @@ struct Args {
     list: bool,
 
     /// Model files to load (e.g., "models/boat.3mf")
-    #[arg(name = "files")]
+    #[arg(name = "FILES")]
     files: Vec<String>,
 }
 
@@ -34,6 +35,7 @@ fn main() {
         .chain(TMF_EXTS.iter())
         .chain(AMF_EXTS.iter())
         .chain(STL_EXTS.iter())
+        .chain(GCODE_EXTS.iter())
         .collect::<Vec<_>>();
     // If list mode is enabled, exit without launching the viewer
     if args.list {
@@ -77,6 +79,7 @@ fn main() {
             .add_plugins(StlPlugin)
             .add_plugins(AmfPlugin)
             .add_plugins(TmfPlugin)
+            .add_plugins(GCodePlugin)
             .add_systems(Startup, setup)
             .add_systems(Update, update)
             .add_plugins(camera::CameraPlugin)
@@ -127,9 +130,10 @@ fn setup(
 
     // Load specified files
     let mut entities = Vec::new();
-    for (ext, file) in global_state.models.iter() {
+    for (file, ext) in global_state.models.iter() {
         if TMF_EXTS.contains(&ext.as_str()) {
-            let entity = commands.spawn(SceneRoot(asset_server.load(TmfLabel::Scene.from_asset(file.clone()))));
+            let scene = asset_server.load(TmfLabel::Scene.from_asset(file.clone()));
+            let entity = commands.spawn(SceneRoot(scene));
             entities.push(entity.id());
         } else if AMF_EXTS.contains(&ext.as_str()) {
             let entity = commands.spawn((
@@ -157,13 +161,22 @@ fn setup(
                 Transform::from_translation(Vec3::ZERO),
             ));
             entities.push(entity.id());
+        } else if GCODE_EXTS.contains(&ext.as_str()) {
+            let mat_asset = GCodeLabel::Material(0).from_asset(file.clone());
+            let mat_handle = asset_server.load::<StandardMaterial>(mat_asset);
+            let entity = commands.spawn((
+                Mesh3d(asset_server.load(GCodeLabel::Mesh(0).from_asset(file.clone()))),
+                MeshMaterial3d(mat_handle),
+                Transform::default(),
+            ));
+            entities.push(entity.id());
         }
     }
 
     if entities.is_empty() {
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
-            MeshMaterial3d( materials.add(StandardMaterial {
+            MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.5, 0.5, 0.5),
                 metallic: 0.0,
                 reflectance: 0.3,

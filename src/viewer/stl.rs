@@ -2,8 +2,7 @@ use std::fmt;
 use bevy::{
     prelude::*,
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
-    mesh::{Indices, PrimitiveTopology},
-    reflect::TypePath,
+    mesh::{Indices, PrimitiveTopology}, reflect::TypePath,
 };
 use crate::stl::{reader, error::Error};
 

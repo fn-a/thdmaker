@@ -5,8 +5,7 @@ use bevy::{
     camera::primitives::MeshAabb,
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
     mesh::{Indices, PrimitiveTopology},
-    scene::Scene,
-    reflect::TypePath,
+    scene::Scene, reflect::TypePath,
 };
 use crate::tmf::{reader, error::Error};
 use crate::tmf::define::model::ObjectType;
