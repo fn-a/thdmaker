@@ -3,7 +3,7 @@ use clap::Parser;
 use bevy::prelude::*;
 use thdmaker::util;
 use thdmaker::viewer::{
-    camera, uireact,
+    camera, uireact, slice::SlicePlugin,
     stl::{EXTENSIONS as STL_EXTS, StlPlugin, StlLabel},
     amf::{EXTENSIONS as AMF_EXTS, AmfPlugin, AmfLabel},
     tmf::{EXTENSIONS as TMF_EXTS, TmfPlugin, TmfLabel},
@@ -80,6 +80,7 @@ fn main() {
             .add_plugins(AmfPlugin)
             .add_plugins(TmfPlugin)
             .add_plugins(GCodePlugin)
+            .add_plugins(SlicePlugin)
             .add_systems(Startup, setup)
             .add_systems(Update, update)
             .add_plugins(camera::CameraPlugin)
@@ -174,17 +175,33 @@ fn setup(
     }
 
     if entities.is_empty() {
-        commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgb(0.5, 0.5, 0.5),
-                metallic: 0.0,
-                reflectance: 0.3,
-                perceptual_roughness: 0.8,
-                ..default()
-            })),
-            Transform::from_xyz(0.0, 0.5, 0.0),
+        let material = MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.5, 0.5, 0.5),
+            metallic: 0.0,
+            reflectance: 0.3,
+            perceptual_roughness: 0.8,
+            ..default()
+        }));
+        let entity = commands.spawn((
+            Mesh3d(meshes.add(Cuboid::new(4.0, 4.0, 4.0))),
+            material.clone(),
+            Transform::from_xyz(-8.0, 2.0, -8.0),
         ));
+        entities.push(entity.id());
+        let entity = commands.spawn((
+            Mesh3d(meshes.add(Sphere::new(2.0))),
+            material.clone(),
+            Transform::from_xyz(8.0, 2.0, -8.0),
+        ));
+        entities.push(entity.id());
+        let entity = commands.spawn((
+            Mesh3d(meshes.add(Extrusion::new(Annulus::new(2.0, 4.0), 2.0))),
+            material,
+            // Transform::from_xyz(0.0, 4.0, 0.0),
+            Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
+                .with_translation(Vec3::new(0.0, 1.0, 0.0)),
+        ));
+        entities.push(entity.id());
     }
 }
 

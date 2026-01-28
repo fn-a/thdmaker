@@ -11,6 +11,16 @@ impl Plugin for UIReactPlugin {
 fn setup_uireact(
     mut commands: Commands,
 ) {
+    let texts = [
+        "Left Click: Rotate",
+        "Right Click: Pan",
+        "Scroll: Zoom",
+        "Ctrl+Left Click: Move Model",
+        "R: Reset Camera",
+        "X: Toggle Wireframe",
+        "S: Toggle Slicer Mode",
+        "V: Toggle Transparent",
+    ];
     // UI Text
     commands.spawn(Node {
             position_type: PositionType::Absolute,
@@ -18,7 +28,7 @@ fn setup_uireact(
             left: Val::Px(12.0),
             ..default()
     }).with_child((
-        Text::new("Left Click: Rotate, Right Click: Pan, Scroll: Zoom,\nCtrl+Left Click: Move Model, R: Reset Camera"),
+        Text::new(texts.join("\n")),
         TextFont {
             font_size: 20.0,
             ..Default::default()
