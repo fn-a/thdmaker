@@ -1,0 +1,13 @@
+[package]
+name = "thdviewer"
+version = "0.0.4"
+authors = ["fn-a <mr.fna.co@gmail.com>"]
+edition = "2024"
+repository = "https://github.com/fn-a/thdmaker"
+description = "Bevy-based viewer UI and asset loading for 3D printing models"
+license = "MIT"
+
+[dependencies]
+thdfiler = { workspace = true }
+thdslicer = { workspace = true }
+bevy = { workspace = true }

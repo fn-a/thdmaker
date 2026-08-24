@@ -1,7 +1,3 @@
-pub mod tmf;
-pub mod stl;
-pub mod amf;
-pub mod util;
-pub mod gcode;
-pub mod viewer;
-pub mod slicer;
+pub use thdfiler as file;
+pub use thdslicer as slice;
+pub use thdviewer as view;

@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 
-pub struct UIReactPlugin;
+pub struct UIPlugin;
 
-impl Plugin for UIReactPlugin {
+impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_uireact);
+        app.add_systems(Startup, setup);
     }
 }
 
-fn setup_uireact(
+fn setup(
     mut commands: Commands,
 ) {
     let texts = [

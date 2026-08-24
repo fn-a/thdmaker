@@ -1,0 +1,14 @@
+[package]
+name = "thdslicer"
+version = "0.0.4"
+authors = ["fn-a <mr.fna.co@gmail.com>"]
+edition = "2024"
+repository = "https://github.com/fn-a/thdmaker"
+description = "Slicing logic for 3D printing: mesh slicing, layers, infill and G-code generation"
+license = "MIT"
+
+[dependencies]
+thdfiler = { workspace = true }
+bevy = { workspace = true }
+thiserror = "^2.0"
+

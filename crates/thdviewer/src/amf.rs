@@ -4,7 +4,7 @@ use bevy::{
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
     mesh::{Indices, PrimitiveTopology}, reflect::TypePath,
 };
-use crate::amf::{reader, error::Error};
+use thdfiler::amf::{reader, error::Error};
 
 pub static EXTENSIONS: &[&str] = &["amf"];
 

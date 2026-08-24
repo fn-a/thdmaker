@@ -2,6 +2,8 @@
 
 A Bevy-based 3D printing design software.
 
+English | [中文](README.zh.md)
+
 ## Overview
 
 THD Maker is a robust, easy-to-use application designed for 3D printing workflows, including 3MF, AMF, STL formats file I/O, preview, slicing, and G-code generation. Built with Rust and Bevy for safety and performance.
@@ -14,6 +16,14 @@ THD Maker is a robust, easy-to-use application designed for 3D printing workflow
 - **Extensible Design**: Modular architecture allowing easy addition of new formats
 - **Cross-platform**: Works on Windows, macOS, and Linux
 - **3D Design Software**: Bevy-based 3D printing design application with file I/O, preview, slicing, and G-code generation
+
+## Modules
+
+- **[`crates/thdfiler`](crates/thdfiler/README.md)**: 3D printing file I/O (AMF, STL, 3MF, GCode)
+- **[`crates/thdslicer`](crates/thdslicer/README.md)**: Slicing logic (mesh slicing, layering, infill, G-code generation)
+- **[`crates/thdviewer`](crates/thdviewer/README.md)**: Bevy-based viewer UI and interaction
+
+Dependency chain: `thdviewer` → `thdslicer` → `thdfiler`.
 
 ## File Format Reference
 

@@ -1,5 +1,5 @@
 use bevy::{prelude::*, color::palettes::basic::AQUA};
-use crate::slicer::{Slicer, Config};
+use thdslicer::{Slicer, Config};
 
 /// Plugin to register slice plugin
 pub struct SlicePlugin;

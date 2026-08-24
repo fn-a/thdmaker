@@ -1,6 +1,8 @@
 # THD Maker - 3D打印创作
 一个基于Bevy的 3D 打印设计软件。
 
+[English](README.md) | 中文
+
 ## 概述
 
 THD Maker 是一个功能强大的应用，专为 3D 打印工作流设计，包括 3MF、AMF、STL 等文件读写、预览、切片和 GCode 生成。基于 Rust 和 Bevy 构建，确保安全性和高性能。
@@ -13,6 +15,14 @@ THD Maker 是一个功能强大的应用，专为 3D 打印工作流设计，包
 - **可扩展设计**：模块化架构，便于轻松添加新格式
 - **跨平台**：支持 Windows、macOS 和 Linux
 - **3D 设计软件**：基于 Bevy 的 3D 打印设计应用，支持文件读写、预览、切片和 GCode 生成
+
+## 模块
+
+- **[`crates/thdfiler`](crates/thdfiler/README.zh.md)**：3D 打印相关文件读写（AMF、STL、3MF、GCode）
+- **[`crates/thdslicer`](crates/thdslicer/README.zh.md)**：切片逻辑（网格切片、分层、填充、G-code 生成）
+- **[`crates/thdviewer`](crates/thdviewer/README.zh.md)**：基于 Bevy 的界面显示与操作
+
+依赖关系：`thdviewer` → `thdslicer` → `thdfiler`。
 
 ## 文件格式参考
 

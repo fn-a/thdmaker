@@ -4,7 +4,7 @@ use bevy::{
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
     mesh::PrimitiveTopology, reflect::TypePath,
 };
-use crate::gcode::{reader, error::Error, define::Arrow};
+use thdfiler::gcode::{reader, error::Error, define::Arrow};
 
 pub static EXTENSIONS: &[&str] = &["gcode"];
 

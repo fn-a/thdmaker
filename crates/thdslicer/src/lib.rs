@@ -5,6 +5,8 @@ use bevy::prelude::{
 use bevy::mesh::{Mesh, PrimitiveTopology};
 use thiserror::Error;
 
+pub use thdfiler::gcode;
+
 mod geometry;
 mod layer;
 mod infill;

@@ -180,10 +180,11 @@ pub fn read_binary<R: BufRead>(reader: &mut R) -> Result<Vec<Mesh>> {
         let attr = cursor.read_u16::<LittleEndian>()?;
         if attr & 0x8000 == 0 {
             if let Some(colors) = mesh.colors.as_mut() {
-                let mut color = colors[f as usize];
-                color.r = (attr & 0x1F) as u8;
-                color.g = ((attr >> 5) & 0x1F) as u8;
-                color.b = ((attr >> 10) & 0x1F) as u8;
+                if let Some(color) = colors.get_mut(f as usize) {
+                    color.r = (attr & 0x1F) as u8;
+                    color.g = ((attr >> 5) & 0x1F) as u8;
+                    color.b = ((attr >> 10) & 0x1F) as u8;
+                }
             }
         }
         if let Some(attrs) = mesh.attrs.as_mut() {

@@ -1,9 +1,9 @@
 use glob::glob;
 use clap::Parser;
 use bevy::prelude::*;
-use thdmaker::util;
-use thdmaker::viewer::{
-    camera, uireact, slice::SlicePlugin,
+use thdfiler::util;
+use thdviewer::{
+    camera, ui, slice::SlicePlugin,
     stl::{EXTENSIONS as STL_EXTS, StlPlugin, StlLabel},
     amf::{EXTENSIONS as AMF_EXTS, AmfPlugin, AmfLabel},
     tmf::{EXTENSIONS as TMF_EXTS, TmfPlugin, TmfLabel},
@@ -84,7 +84,7 @@ fn main() {
             .add_systems(Startup, setup)
             .add_systems(Update, update)
             .add_plugins(camera::CameraPlugin)
-            .add_plugins(uireact::UIReactPlugin)
+            .add_plugins(ui::UIPlugin)
             .insert_resource(GlobalState { models })
             .run();
     }

@@ -7,8 +7,8 @@ use bevy::{
     mesh::{Indices, PrimitiveTopology},
     scene::Scene, reflect::TypePath,
 };
-use crate::tmf::{reader, error::Error};
-use crate::tmf::define::model::ObjectType;
+use thdfiler::tmf::{reader, error::Error};
+use thdfiler::tmf::define::model::ObjectType;
 
 pub static EXTENSIONS: &[&str] = &["3mf"];
 

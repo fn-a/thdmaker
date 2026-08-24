@@ -7,32 +7,28 @@ repository = "https://github.com/fn-a/thdmaker"
 description = "A comprehensive 3D file format library supporting AMF, STL, 3MF and other 3D manufacturing formats"
 license = "MIT"
 
+[workspace]
+members = [
+    ".",
+    "crates/thdfiler",
+    "crates/thdslicer",
+    "crates/thdviewer",
+]
+resolver = "2"
+
 [dependencies]
 glob = "^0.3"
-thiserror = "^2.0"
-byteorder = "^1.5"
-base64 = "^0.22"
-
-[dependencies.serde]
-version = "^1.0"
-features = ["derive"]
-
-[dependencies.quick-xml]
-version = "^0.38"
-features = ["serialize", "overlapped-lists"]
-
-[dependencies.zip]
-version = "^7.0"
-default-features = false
-features = ["deflate"]
-
-[dependencies.uuid]
-version = "^1.0"
-features = ["v4"]
+thdfiler = { workspace = true }
+thdslicer = { workspace = true }
+thdviewer = { workspace = true }
+bevy = { workspace = true }
 
 [dependencies.clap]
 version = "^4.5"
 features = ["derive"]
 
-[dependencies.bevy]
-version = "^0.17"
+[workspace.dependencies]
+bevy = "^0.17"
+thdfiler = { path = "crates/thdfiler" }
+thdslicer = { path = "crates/thdslicer" }
+thdviewer = { path = "crates/thdviewer" }
