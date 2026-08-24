@@ -29,6 +29,6 @@ features = ["derive"]
 
 [workspace.dependencies]
 bevy = "^0.17"
-thdfiler = { path = "crates/thdfiler" }
-thdslicer = { path = "crates/thdslicer" }
-thdviewer = { path = "crates/thdviewer" }
+thdfiler = { path = "crates/thdfiler", version = "0.0.5" }
+thdslicer = { path = "crates/thdslicer", version = "0.0.5" }
+thdviewer = { path = "crates/thdviewer", version = "0.0.5" }
