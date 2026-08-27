@@ -5,3 +5,5 @@ pub mod amf;
 pub mod tmf;
 pub mod gcode;
 pub mod slice;
+pub mod gizmo;
+pub mod tools;

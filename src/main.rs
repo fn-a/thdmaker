@@ -4,7 +4,8 @@ use clap::Parser;
 use bevy::prelude::*;
 use thdfiler::util;
 use thdviewer::{
-    camera, ui, slice::SlicePlugin,
+    camera::CameraPlugin, ui::UIPlugin, slice::SlicePlugin,
+    gizmo::GizmoPlugin, tools::ToolsPlugin,
     stl::{EXTENSIONS as STL_EXTS, StlPlugin, StlLabel},
     amf::{EXTENSIONS as AMF_EXTS, AmfPlugin, AmfLabel},
     tmf::{EXTENSIONS as TMF_EXTS, TmfPlugin, TmfLabel},
@@ -77,15 +78,9 @@ fn main() {
                 brightness: 0.3,
                 ..default()
             })
-            .add_plugins(StlPlugin)
-            .add_plugins(AmfPlugin)
-            .add_plugins(TmfPlugin)
-            .add_plugins(GCodePlugin)
-            .add_plugins(SlicePlugin)
+            .add_plugins((StlPlugin, AmfPlugin, TmfPlugin, GCodePlugin, SlicePlugin))
+            .add_plugins((CameraPlugin, UIPlugin, GizmoPlugin, ToolsPlugin))
             .add_systems(Startup, setup)
-            .add_systems(Update, update)
-            .add_plugins(camera::CameraPlugin)
-            .add_plugins(ui::UIPlugin)
             .insert_resource(GlobalState { models })
             .run();
     }
@@ -124,6 +119,7 @@ fn rim_light() -> impl Scene {
     }
 }
 
+// A gray material
 fn material_gray(materials: &mut Assets<StandardMaterial>) -> Handle<StandardMaterial> {
     materials.add(StandardMaterial {
         base_color: Color::srgb(0.5, 0.5, 0.5),
@@ -226,18 +222,4 @@ fn setup(
     if !loaded {
         commands.spawn_scene_list(fallback_scene(&mut meshes, &mut materials));
     }
-}
-
-fn update(mut gizmos: Gizmos) {
-    gizmos.grid(
-        Quat::from_rotation_x(-FRAC_PI_2),
-        UVec2::new(20, 20),
-        Vec2::new(1.0, 1.0),
-        Color::srgb(0.5, 0.5, 0.5),
-    ).outer_edges();
-
-    gizmos.axes(
-        Transform::from_translation(Vec3::ZERO),
-        2.0,
-    );
 }
