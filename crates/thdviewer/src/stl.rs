@@ -29,7 +29,7 @@ pub struct StlAsset {
 }
 
 /// Asset loader for STL files
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct StlLoader;
 
 impl AssetLoader for StlLoader {

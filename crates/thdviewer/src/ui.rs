@@ -30,9 +30,9 @@ fn setup(
     }).with_child((
         Text::new(texts.join("\n")),
         TextFont {
-            font_size: 20.0,
+            font_size: FontSize::Px(20.0),
             ..Default::default()
         },
-        TextColor(Color::WHITE.into())
+        TextColor(Color::WHITE)
     ));
 }

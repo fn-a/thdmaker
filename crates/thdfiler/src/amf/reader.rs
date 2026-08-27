@@ -17,7 +17,7 @@ use super::define::*;
 
 impl Document {
     // Parse AMF content (children of amf element)
-    fn parse<R: BufRead>(self: &mut Self, reader: &mut Reader<R>) -> Result<()> {
+    fn parse<R: BufRead>(&mut self, reader: &mut Reader<R>) -> Result<()> {
         let mut buf = Vec::new();
         
         loop {
@@ -59,7 +59,7 @@ impl Document {
     }
 
     // Parse AMF root element attributes
-    fn attributes(self: &mut Self, elem: &BytesStart) -> Result<()> {
+    fn attributes(&mut self, elem: &BytesStart) -> Result<()> {
         for attr in elem.attributes().flatten() {
             match attr.key.as_ref() {
                 b"unit" => {

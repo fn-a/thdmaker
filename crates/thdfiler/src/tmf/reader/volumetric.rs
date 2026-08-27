@@ -40,7 +40,7 @@ impl Function {
         }
 
         let function_type = function_type.ok_or_else(|| {
-            Error::InvalidStructure(format!("function type not matched: {}", String::from_utf8_lossy(name.as_ref()).to_string()))
+            Error::InvalidStructure(format!("function type not matched: {}", String::from_utf8_lossy(name.as_ref())))
         })?;
 
         Ok(Self { id, display_name, r#type: function_type })

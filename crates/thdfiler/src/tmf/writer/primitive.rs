@@ -5,7 +5,7 @@ use super::error::Result;
 use super::define::primitive::*;
 
 impl Mesh {
-    pub fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("mesh");
         if let Some(volume_id) = self.volume_id {
             elem.push_attribute(("volumeid", volume_id.to_string().as_str()));

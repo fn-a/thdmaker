@@ -10,7 +10,7 @@ pub struct Word {
 }
 
 /// Represents a G-code command (e.g., G1, M3).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum Command {
     /// G-code command (e.g., G1, G2).
     GCode(usize),
@@ -19,14 +19,10 @@ pub enum Command {
     /// Other command (e.g., S100, F500).
     Other(char, usize),
     /// No command (e.g., only comment line).
+    #[default]
     None,
 }
 
-impl Default for Command {
-    fn default() -> Self {
-        Self::None
-    }
-}
 
 /// Represents a parsed line of G-code.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -49,13 +45,13 @@ impl Line {
                 1 => Box::new(G1::from(&self.parameters)),
                 2 => Box::new(G2::from(&self.parameters)),
                 3 => Box::new(G3::from(&self.parameters)),
-                90 => Box::new(G90::default()),
-                91 => Box::new(G91::default()),
+                90 => Box::new(G90),
+                91 => Box::new(G91),
                 _ => Box::new(Void),
             },
             Command::MCode(v) => match v {
-                82 => Box::new(M82::default()),
-                83 => Box::new(M83::default()),
+                82 => Box::new(M82),
+                83 => Box::new(M83),
                 _ => Box::new(Void),
             },
             _ => Box::new(Void),
@@ -175,7 +171,7 @@ impl G0 {
 
 impl Route for G0 {
     fn march(&self, arrow: &mut Arrow) -> March {
-        let mut position = arrow.position.clone();
+        let mut position = arrow.position;
         if let Some(x) = self.x {
             position[0] = if arrow.absolute { x } else { position[0] + x };
         }
@@ -268,7 +264,7 @@ impl G1 {
 
 impl Route for G1 {
     fn march(&self, arrow: &mut Arrow) -> March {
-        let mut position = arrow.position.clone();
+        let mut position = arrow.position;
         if let Some(x) = self.x {
             position[0] = if arrow.absolute { x } else { position[0] + x };
         }
@@ -350,9 +346,9 @@ pub struct Arc {
 impl Arc {
     fn points(&self, arrow: &Arrow, direct: f32) -> Vec<[f32; 3]> {
         // Starting position [x, y, z]
-        let start = arrow.position.clone();
+        let start = arrow.position;
         // Ending position [x, y, z]
-        let mut endpt = start.clone();
+        let mut endpt = start;
         
         if let Some(x) = self.x {
             endpt[0] = if arrow.absolute { x } else { start[0] + x };
@@ -400,7 +396,7 @@ impl Arc {
                 // Calculate number of segments based on arc length
                 // Use a segment length of approximately 0.5mm
                 // Limit to reasonable range
-                let segments = ((radius * angle_diff.abs() / 0.5).ceil() as usize).max(1).min(1000);
+                let segments = ((radius * angle_diff.abs() / 0.5).ceil() as usize).clamp(1, 1000);
                 
                 let mut points = Vec::with_capacity(segments);
                 

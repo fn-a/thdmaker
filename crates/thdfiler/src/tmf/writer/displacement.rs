@@ -6,7 +6,7 @@ use super::define::displacement::*;
 
 /// Displacement 2D resource writing
 impl Displacement2D {
-    pub fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("d:displacement2d");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         elem.push_attribute(("path", self.path.as_str()));
@@ -35,7 +35,7 @@ impl Displacement2D {
 
 /// Normalized vector group writing
 impl NormVectorGroup {
-    pub fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("d:normvectorgroup");
         elem.push_attribute(("id", self.id.to_string().as_str()));
 
@@ -57,7 +57,7 @@ impl NormVectorGroup {
 
 /// 2D displacement group writing
 impl Disp2DGroup {
-    pub fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("d:disp2dgroup");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         elem.push_attribute(("dispid", self.disp_id.to_string().as_str()));
@@ -91,7 +91,7 @@ impl Disp2DGroup {
 
 /// Displacement mesh writing
 impl DisplacementMesh {
-    pub fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("d:displacementmesh")))?;
 
         // Write vertices
@@ -108,7 +108,7 @@ impl DisplacementMesh {
 
 /// Displacement vertex collection writing
 impl DispVertices {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("d:vertices")))?;
 
         for vertex in &self.vertices {
@@ -127,7 +127,7 @@ impl DispVertices {
 
 /// Displacement triangle collection writing
 impl DispTriangles {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("d:triangles");
         
         if let Some(did) = self.did {
@@ -148,7 +148,7 @@ impl DispTriangles {
 
 /// Displacement triangle writing
 impl DispTriangle {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("d:triangle");
         
         // 3MF uses 1-based indexing

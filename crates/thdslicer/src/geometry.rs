@@ -65,17 +65,17 @@ impl PartialEq for Cov {
 
 impl Ord for Cov {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(&other).unwrap_or(Ordering::Equal)
+        if self.diff(other) < Self::epow() {
+            Ordering::Equal
+        } else {
+            self.0.total_cmp(&other.0)
+        }
     }
 }
 
 impl PartialOrd for Cov {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.diff(other) < Self::epow() {
-            Some(Ordering::Equal)
-        } else {
-            self.0.partial_cmp(&other.0)
-        }
+        Some(self.cmp(other))
     }
 }
 
@@ -240,7 +240,7 @@ impl Segment2D {
             let u = -((x1 - x2) * (z1 - z3) - (z1 - z2) * (x1 - x3)) / denom;
     
             // Check if intersection point is within both segments
-            if t >= 0.0 && t <= 1.0 && u >= 0.0 && u <= 1.0 {
+            if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u) {
                 let x = x1 + t * (x2 - x1);
                 let z = z1 + t * (z2 - z1);
                 Some(Point2D::new(x, z))
@@ -503,7 +503,7 @@ impl Polygon2D {
                 };
 
                 // Clamp t to [0, 1] range
-                let clamped = t.max(0.0).min(1.0);
+                let clamped = t.clamp(0.0, 1.0);
 
                 points.push((clamped, point));
             }

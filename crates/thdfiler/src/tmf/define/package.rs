@@ -82,7 +82,7 @@ pub struct ContentTypes {
 
 impl ContentTypes {
     pub fn ensure_default(&mut self, extension: &str, content_type: &str) {
-        if !self.defaults.iter().any(|d| d.extension == extension.to_string()) {
+        if !self.defaults.iter().any(|d| d.extension == extension) {
             self.defaults.push(ContentTypeDefault {
                 extension: extension.to_string(),
                 content_type: content_type.to_string(),
@@ -91,7 +91,7 @@ impl ContentTypes {
     }
 
     pub fn ensure_override(&mut self, part_name: &str, content_type: &str) {
-        if !self.overrides.iter().any(|o| o.part_name == part_name.to_string()) {
+        if !self.overrides.iter().any(|o| o.part_name == part_name) {
             self.overrides.push(ContentTypeOverride {
                 part_name: part_name.to_string(),
                 content_type: content_type.to_string(),
@@ -138,7 +138,7 @@ impl Relationships {
 
     /// Ensure a relationship of the given type and target exists.
     pub fn ensure(&mut self, r#type: &str, target: &str) {
-        if !self.relationships.iter().any(|r| r.r#type == r#type.to_string() && r.target == target.to_string()) {
+        if !self.relationships.iter().any(|r| r.r#type == r#type && r.target == target) {
             self.relationships.push(Relationship {
                 id: "rel".to_owned() + &self.relationships.len().to_string(),
                 r#type: r#type.to_string(),

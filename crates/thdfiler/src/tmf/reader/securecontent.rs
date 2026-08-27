@@ -378,6 +378,6 @@ impl Base64Value {
             buf.clear();
         }
 
-        Ok(content.as_str().parse()?)
+        content.as_str().parse()
     }
 }

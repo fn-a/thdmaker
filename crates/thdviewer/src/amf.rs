@@ -29,7 +29,7 @@ impl Plugin for AmfPlugin {
 }
 
 /// Asset loader for AMF files
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct AmfLoader;
 
 impl AssetLoader for AmfLoader {

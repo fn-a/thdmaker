@@ -199,7 +199,7 @@ impl BooleanShape {
         }
 
         // Validate object IDs of all boolean operations
-        for (_, boolean) in self.booleans.iter().enumerate() {
+        for boolean in self.booleans.iter() {
             if boolean.object_id == 0 {
                 return Err(Error::InvalidAttribute {
                     name: "objectid".to_string(),

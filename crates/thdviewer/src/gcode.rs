@@ -30,7 +30,7 @@ pub struct GCodeAsset {
 }
 
 /// Asset loader for GCode files
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct GCodeLoader;
 
 impl AssetLoader for GCodeLoader {
@@ -57,21 +57,26 @@ impl AssetLoader for GCodeLoader {
 
             let solid = Color::srgb(0.0, 1.0, 0.0).to_srgba().to_vec4();
             let empty = Color::srgb(0.4, 0.5, 0.6).to_srgba().to_vec4();
-            
+            let mut lcolor: Option<Vec4> = None;
+
             for line in gdata.lines.iter() {
                 let route = line.route();
                 let march = route.march(&mut arrow);
                 // Convert points to Y-up coordinates
                 let positions = march.get_positions();
-                
+
                 if !positions.is_empty() {
                     let length = positions.len();
-                    points.extend(positions);
-                    if march.solid {
-                        colors.extend(vec![solid; length]);
-                    } else {
-                        colors.extend(vec![empty; length]);
+                    // Break the line strip when the color changes so that
+                    // separate routes don't get connected by spurious segments
+                    let color = if march.solid { solid } else { empty };
+                    if lcolor.is_some_and(|c| c != color) && let Some(last) = points.last() {
+                        points.push(*last);
+                        colors.push(color);
                     }
+                    lcolor = Some(color);
+                    points.extend(positions);
+                    colors.extend(vec![color; length]);
                 }
             }
 

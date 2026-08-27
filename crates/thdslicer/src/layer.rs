@@ -56,25 +56,25 @@ impl <'a> Layer<'a> {
             let infills = if self.index == 0 {
                  match self.config.dense_infill {
                     DenseInfill::Grid => {
-                        DenseInfill::grid(&self.bounding, &self.config)
+                        DenseInfill::grid(&self.bounding, self.config)
                     }
                     DenseInfill::Line => {
-                        DenseInfill::line(&self.bounding, &self.config)
+                        DenseInfill::line(&self.bounding, self.config)
                     }
                 }
             } else {
                 match self.config.sparse_infill {
                     SparseInfill::Grid => {
-                        SparseInfill::grid(&self.bounding, &self.config)
+                        SparseInfill::grid(&self.bounding, self.config)
                     }
                     SparseInfill::Line => {
-                        SparseInfill::line(&self.bounding, &self.config)
+                        SparseInfill::line(&self.bounding, self.config)
                     }
                     SparseInfill::Honeycomb => {
-                        SparseInfill::honeycomb(&self.bounding, &self.config)
+                        SparseInfill::honeycomb(&self.bounding, self.config)
                     }
                     SparseInfill::Concentric => {
-                        SparseInfill::concentric(&self.bounding, &self.config)
+                        SparseInfill::concentric(&self.bounding, self.config)
                     }
                 }
             };
@@ -102,15 +102,16 @@ impl <'a> Layer<'a> {
                 }
 
                 let contour = &mut self.contours[i];
-                contour.outer = counts % 2 == 0;
+                contour.outer = counts.is_multiple_of(2);
 
                 // Determine offset direction based on contour type
-                // Outer contour: offset inward (negative distance)
-                // Inner contour: offset outward (positive distance)
+                // Polygon::offset shrinks with positive distance and expands with negative
+                // Outer contour: offset inward (shrink, positive distance)
+                // Inner contour (hole): offset outward (expand the hole, negative distance)
                 let distance = if contour.outer {
-                    -self.config.line_width // inward for outer contour
+                    self.config.line_width
                 } else {
-                    self.config.line_width // outward for inner contour
+                    -self.config.line_width
                 };
 
                 // Generate perimeters for each contour
@@ -147,22 +148,23 @@ impl <'a> Layer<'a> {
                 let n = infhit.len();
                 if n > 0 {
                     infhit.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
+                    // Pair consecutive crossings along the infill line; the segment
+                    // between the last and first crossing lies outside the material,
+                    // so the wrap-around pair is intentionally skipped
                     for i in 0..n - 1 {
-                        let j = (i + 1) % n;
+                        let j = i + 1;
                         let k = (i + n - 1) % n;
-                        if j > 0 {
-                            let curr = infhit[i];
-                            let next = infhit[j];
-                            let prev = infhit[k];
-                            let fill = if curr.1 == true && next.1 == false {
-                                true
-                            } else if curr.1 == false && next.1 == true {
-                                !prev.1
-                            } else {
-                                curr.1
-                            };
-                            self.infills.push((fill, Segment2D::new(curr.0, next.0)));
-                        }
+                        let curr = infhit[i];
+                        let next = infhit[j];
+                        let prev = infhit[k];
+                        let fill = if curr.1 && !next.1 {
+                            true
+                        } else if !curr.1 && next.1 {
+                            !prev.1
+                        } else {
+                            curr.1
+                        };
+                        self.infills.push((fill, Segment2D::new(curr.0, next.0)));
                     }
                 }
             }
@@ -187,10 +189,10 @@ impl <'a> Layer<'a> {
                 consumes[i] = true;
             } else {
                 adjacency.entry(curr.start)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push((i, true));
                 adjacency.entry(curr.end)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push((i, false));
             }
         }

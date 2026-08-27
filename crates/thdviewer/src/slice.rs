@@ -76,7 +76,7 @@ fn toggle(
                 }
 
                 if pressed.1 && !state.sliced {
-                    if let Some(mat) = materials.get_mut(&material.0) {
+                    if let Some(mut mat) = materials.get_mut(&material.0) {
                         if state.transparent {
                             mat.base_color = mat.base_color.with_alpha(0.3);
                             mat.alpha_mode = AlphaMode::Blend;

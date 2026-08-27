@@ -6,7 +6,7 @@ use super::define::package::*;
 use super::define::model::*;
 
 impl Model {
-    pub fn write<W: Write>(self: &Self, writer: W) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: W) -> Result<()> {
         let mut xml_writer = Writer::new_with_indent(writer, b' ', 2);
     
         // XML declaration
@@ -62,7 +62,7 @@ impl Model {
 }
 
 impl Metadata {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("metadata");
         elem.push_attribute(("name", self.name.as_str()));
         
@@ -83,7 +83,7 @@ impl Metadata {
 }
 
 impl Resources {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("resources")))?;
     
         // Base materials
@@ -128,7 +128,7 @@ impl Resources {
 }
 
 impl BaseMaterials {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("basematerials");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         // Material extension display properties ID
@@ -150,7 +150,7 @@ impl BaseMaterials {
 }
 
 impl Object {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("object");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         
@@ -214,7 +214,7 @@ impl Object {
 }
 
 impl Components {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("components")))?;
     
         for component in &self.components {
@@ -239,7 +239,7 @@ impl Components {
 }
 
 impl Build {
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut build = BytesStart::new("build");
         
         if let Some(ref production) = self.production {

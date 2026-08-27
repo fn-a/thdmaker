@@ -16,7 +16,7 @@ use super::define::*;
 
 impl Document {
     // Write AMF document to a generic writer (XML format)
-    pub fn write<W: Write>(self: &Self, writer: W) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: W) -> Result<()> {
         let mut xml_writer = Writer::new_with_indent(writer, b' ', 2);
         
         // Write XML declaration
@@ -75,7 +75,7 @@ impl Document {
 
 impl Metadata {
     // Write metadata element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("metadata");
         elem.push_attribute(("type", self.r#type.as_str()));
         
@@ -91,7 +91,7 @@ impl Metadata {
 
 impl Object {
     // Write object element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("object");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         
@@ -118,7 +118,7 @@ impl Object {
 
 impl Mesh  {
     // Write mesh element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("mesh")))?;
         
         // Write vertices
@@ -135,7 +135,7 @@ impl Mesh  {
 
 impl Vertices {
     // Write vertices element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("vertices")))?;
         
         // Write vertices
@@ -156,7 +156,7 @@ impl Vertices {
 
 impl Vertex {
     // Write vertex element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("vertex")))?;
         
         // Write metadata
@@ -185,7 +185,7 @@ impl Vertex {
 
 impl Coordinates {
     // Write coordinates element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("coordinates")))?;
         
         NameValue::from(("x", self.x.to_string().as_str())).write(writer)?;
@@ -200,7 +200,7 @@ impl Coordinates {
 
 impl Normal {
     // Write normal element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("normal")))?;
         
         NameValue::from(("nx", self.nx.to_string().as_str())).write(writer)?;
@@ -215,7 +215,7 @@ impl Normal {
 
 impl Edge {
     // Write edge element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("edge")))?;
         
         NameValue::from(("v1", self.v1.to_string().as_str())).write(writer)?;
@@ -235,7 +235,7 @@ impl Edge {
 
 impl Volume {
     // Write volume element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("volume");
         
         if let Some(material_id) = self.material_id {
@@ -270,7 +270,7 @@ impl Volume {
 
 impl Triangle {
     // Write triangle element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("triangle")))?;
         
         NameValue::from(("v1", self.v1.to_string().as_str())).write(writer)?;
@@ -294,7 +294,7 @@ impl Triangle {
 }
 impl TexMap {
     // Write texmap element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("texmap");
         
         if let Some(rtexid) = self.rtexid {
@@ -337,7 +337,7 @@ impl TexMap {
 
 impl Color {
     // Write color element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new("color")))?;
         
         NameValue::from(("r", self.r.to_string().as_str())).write(writer)?;
@@ -356,7 +356,7 @@ impl Color {
 
 impl Material {
     // Write material element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("material");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         
@@ -379,7 +379,7 @@ impl Material {
 }
 impl Composite {
     // Write composite element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("composite");
         elem.push_attribute(("materialid", self.material_id.to_string().as_str()));
         
@@ -395,7 +395,7 @@ impl Composite {
 
 impl Texture {
     // Write texture element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("texture");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         elem.push_attribute(("width", self.width.to_string().as_str()));
@@ -416,7 +416,7 @@ impl Texture {
 
 impl Constellation {
     // Write constellation element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("constellation");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         
@@ -435,7 +435,7 @@ impl Constellation {
 
 impl Instance {
     // Write instance element
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut elem = BytesStart::new("instance");
         elem.push_attribute(("objectid", self.object_id.to_string().as_str()));
         
@@ -470,7 +470,7 @@ struct NameValue<'a>(&'a str, &'a str);
 
 impl<'a> NameValue<'a> {
     // Helper function to write a simple element with text content
-    fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         writer.write_event(Event::Start(BytesStart::new(self.0)))?;
         
         writer.write_event(Event::Text(BytesText::new(self.1)))?;

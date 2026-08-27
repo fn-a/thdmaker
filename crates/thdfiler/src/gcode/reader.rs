@@ -14,32 +14,33 @@ impl GCode {
                 continue;
             }
             if comments.is_empty() {
-                if lstr.starts_with('(') {
-                    let comment = lstr[1..lstr.len()].to_string();
+                if let Some(comment) = lstr.strip_prefix('(') {
                     if comment.is_empty() {
                         continue;
                     } else {
-                        if comment.ends_with(')') {
-                            let mut line = Line::default();
-                            line.comment = Some(comment[..comment.len() - 1].to_string());
-                            lines.push(line);
+                        if let Some(inner) = comment.strip_suffix(')') {
+                            lines.push(Line {
+                                comment: Some(inner.to_string()),
+                                ..Default::default()
+                            });
                         } else {
-                            comments.push(comment);
+                            comments.push(comment.to_string());
                         }
                     }
-                } else if lstr.starts_with(';') {
-                    let mut line = Line::default();
-                    line.comment = Some(lstr[1..].to_string());
-                    lines.push(line);
+                } else if let Some(comment) = lstr.strip_prefix(';') {
+                    lines.push(Line {
+                        comment: Some(comment.to_string()),
+                        ..Default::default()
+                    });
                 } else {
                     lines.push(Line::parse(lstr)?);
                 }
             } else {
                 if lstr.ends_with(")") {
-                    let comment = comments.join("\n");
-                    let mut line = Line::default();
-                    line.comment = Some(comment);
-                    lines.push(line);
+                    lines.push(Line {
+                        comment: Some(comments.join("\n")),
+                        ..Default::default()
+                    });
                     comments.clear();
                 } else {
                     comments.push(lstr.to_string());
@@ -59,7 +60,7 @@ enum Pattern {
 }
 
 impl Pattern {
-    fn produce(&self, line: &mut Line, keep: &Vec<char>) -> Result<()> {
+    fn produce(&self, line: &mut Line, keep: &[char]) -> Result<()> {
         let word = keep.iter().collect::<String>();
         let letter = keep[0];
         let number = if word.len() > 1 { &word[1..] } else { "" };

@@ -64,11 +64,12 @@ impl Displacement2D {
 }
 
 /// Displacement texture channel name
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ChannelName {
     /// Red channel
     R,
     /// Green channel
+    #[default]
     G,
     /// Blue channel
     B,
@@ -76,11 +77,6 @@ pub enum ChannelName {
     A,
 }
 
-impl Default for ChannelName {
-    fn default() -> Self {
-        ChannelName::G
-    }
-}
 
 impl fmt::Display for ChannelName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -111,9 +107,10 @@ impl FromStr for ChannelName {
 }
 
 /// Texture tiling style
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum TileStyle {
     /// Repeat tiling
+    #[default]
     Wrap,
     /// Mirror tiling
     Mirror,
@@ -123,11 +120,6 @@ pub enum TileStyle {
     None,
 }
 
-impl Default for TileStyle {
-    fn default() -> Self {
-        TileStyle::Wrap
-    }
-}
 
 impl fmt::Display for TileStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -158,9 +150,10 @@ impl FromStr for TileStyle {
 }
 
 /// Texture filter type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Filter {
     /// Auto select best filter
+    #[default]
     Auto,
     /// Linear interpolation
     Linear,
@@ -168,11 +161,6 @@ pub enum Filter {
     Nearest,
 }
 
-impl Default for Filter {
-    fn default() -> Self {
-        Filter::Auto
-    }
-}
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

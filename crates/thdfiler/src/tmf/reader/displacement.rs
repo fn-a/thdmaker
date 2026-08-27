@@ -363,7 +363,7 @@ impl DispTriangles {
             buf.clear();
         }
 
-        if triangles.triangles.len() < 1 {
+        if triangles.triangles.is_empty() {
             return Err(Error::InvalidMesh(
                 "triangles must contain at least 1 triangle".to_string()
             ));

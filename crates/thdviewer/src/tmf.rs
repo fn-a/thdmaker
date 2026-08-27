@@ -5,7 +5,7 @@ use bevy::{
     camera::primitives::MeshAabb,
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
     mesh::{Indices, PrimitiveTopology},
-    scene::Scene, reflect::TypePath,
+    world_serialization::WorldAsset, reflect::TypePath,
 };
 use thdfiler::tmf::{reader, error::Error};
 use thdfiler::tmf::define::model::ObjectType;
@@ -29,11 +29,11 @@ impl Plugin for TmfPlugin {
 /// Asset containing a scene with meshes from a 3MF file
 #[derive(Asset, TypePath, Debug)]
 pub struct TmfAsset {
-    pub scene: Handle<Scene>,
+    pub scene: Handle<WorldAsset>,
 }
 
 /// Asset loader for 3MF files
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct TmfLoader;
 
 impl AssetLoader for TmfLoader {
@@ -135,7 +135,7 @@ impl AssetLoader for TmfLoader {
                 }
             }
             // Create scene from the world
-            let scene = Scene::new(world);
+            let scene = WorldAsset::new(world);
             let scene_handle = load_context.add_labeled_asset(TmfLabel::Scene.to_string(), scene);
             
             Ok(TmfAsset { scene: scene_handle })

@@ -1,3 +1,4 @@
+use std::f32::consts::FRAC_PI_2;
 use glob::glob;
 use clap::Parser;
 use bevy::prelude::*;
@@ -59,7 +60,7 @@ fn main() {
                 models.push((file.clone(), ext));
             }
         }
-    
+
         App::new()
             .add_plugins(DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
@@ -71,7 +72,7 @@ fn main() {
             // Set background color
             .insert_resource(ClearColor(Color::srgb(0.8, 0.8, 0.85)))
             // Ambient light - provides base illumination
-            .insert_resource(AmbientLight {
+            .insert_resource(GlobalAmbientLight {
                 color: Color::srgb(0.8, 0.8, 0.9),
                 brightness: 0.3,
                 ..default()
@@ -90,6 +91,100 @@ fn main() {
     }
 }
 
+// Key light - main light from top-right
+fn key_light() -> impl Scene {
+    bsn! {
+        DirectionalLight {
+            illuminance: 1500.0,
+            color: Color::WHITE,
+        }
+        Transform { rotation: Quat::from_euler(EulerRot::XYZ, -0.6, 0.8, 0.0) }
+    }
+}
+
+// Fill light - softer light from bottom-left
+fn fill_light() -> impl Scene {
+    bsn! {
+        DirectionalLight {
+            illuminance: 600.0,
+            color: Color::srgb(0.95, 0.95, 1.0),
+        }
+        Transform { rotation: Quat::from_euler(EulerRot::XYZ, 0.5, -0.6, 0.0) }
+    }
+}
+
+// Rim light - backlight from behind
+fn rim_light() -> impl Scene {
+    bsn! {
+        DirectionalLight {
+            illuminance: 750.0,
+            color: Color::WHITE,
+        }
+        Transform { rotation: Quat::from_euler(EulerRot::XYZ, 0.2, std::f32::consts::PI, 0.0) }
+    }
+}
+
+fn material_gray(materials: &mut Assets<StandardMaterial>) -> Handle<StandardMaterial> {
+    materials.add(StandardMaterial {
+        base_color: Color::srgb(0.5, 0.5, 0.5),
+        metallic: 0.0,
+        reflectance: 0.3,
+        perceptual_roughness: 0.8,
+        ..default()
+    })
+}
+
+// A model entity placed at the given position
+fn assemble_model(
+    mesh: Handle<Mesh>,
+    material: Handle<StandardMaterial>,
+    translation: Vec3,
+) -> impl Scene {
+    bsn! {
+        Mesh3d(mesh)
+        MeshMaterial3d::<StandardMaterial>(material)
+        Transform { translation: translation }
+    }
+}
+
+// Fallback demo shapes shown when no models were loaded
+fn fallback_scene(
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+) -> impl SceneList {
+    let material = material_gray(materials);
+    let cube = meshes.add(Cuboid::new(4.0, 4.0, 4.0));
+    let sphere = meshes.add(Sphere::new(2.0));
+    let annulus = meshes.add(Extrusion::new(Annulus::new(2.0, 4.0), 2.0));
+    let cube_mat = material.clone();
+    let sphere_mat = material.clone();
+    bsn_list![
+        (
+            #Cube
+            Mesh3d(cube)
+            MeshMaterial3d::<StandardMaterial>(cube_mat)
+            Transform { translation: Vec3::new(-8.0, 2.0, -8.0) }
+        ),
+        (
+            #Sphere
+            Mesh3d(sphere)
+            MeshMaterial3d::<StandardMaterial>(sphere_mat)
+            Transform { translation: Vec3::new(8.0, 2.0, -8.0) }
+        ),
+        (
+            #Annulus
+            Mesh3d(annulus)
+            MeshMaterial3d::<StandardMaterial>(material)
+            Transform {
+                rotation: Quat::from_rotation_x(-FRAC_PI_2),
+                // Vertically placed rotation_z translation(0.0, 4.0, 0.0),
+                // Horizontally placed rotation_x translation(0.0, 1.0, 0.0),
+                translation: Vec3::new(0.0, 1.0, 0.0),
+            }
+        ),
+    ]
+}
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -97,122 +192,50 @@ fn setup(
     asset_server: Res<AssetServer>,
     global_state: Res<GlobalState>,
 ) {
-    let intensity = 1500.0;
-    // Key light - main light from top-right
-    commands.spawn((
-        DirectionalLight {
-            illuminance: intensity,
-            color: Color::WHITE,
-            shadows_enabled: false,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.6, 0.8, 0.0)),
-    ));
-    // Fill light - softer light from bottom-left
-    commands.spawn((
-        DirectionalLight {
-            illuminance: intensity * 0.4,
-            color: Color::srgb(0.95, 0.95, 1.0),
-            shadows_enabled: false,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, 0.5, -0.6, 0.0)),
-    ));
-    // Rim light - backlight from behind
-    commands.spawn((
-        DirectionalLight {
-            illuminance: intensity * 0.5,
-            color: Color::WHITE,
-            shadows_enabled: false,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, 0.2, 3.14, 0.0)),
-    ));
+    // Three-point lighting rig
+    commands.spawn_scene_list(bsn_list![key_light(), fill_light(), rim_light(),]);
 
     // Load specified files
-    let mut entities = Vec::new();
+    let mut loaded = false;
     for (file, ext) in global_state.models.iter() {
         if TMF_EXTS.contains(&ext.as_str()) {
             let scene = asset_server.load(TmfLabel::Scene.from_asset(file.clone()));
-            let entity = commands.spawn(SceneRoot(scene));
-            entities.push(entity.id());
+            commands.spawn_scene(bsn! {
+                WorldAssetRoot(scene)
+                Name(format!("Model: {file}"))
+            });
+            loaded = true;
         } else if AMF_EXTS.contains(&ext.as_str()) {
-            let entity = commands.spawn((
-                Mesh3d(asset_server.load(AmfLabel::Mesh(0).from_asset(file.clone()))),
-                MeshMaterial3d(materials.add(StandardMaterial {
-                    base_color: Color::srgb(0.5, 0.5, 0.5),
-                    metallic: 0.0,
-                    reflectance: 0.3,
-                    perceptual_roughness: 0.8,
-                    ..default()
-                })),
-                Transform::from_translation(Vec3::ZERO),
-            ));
-            entities.push(entity.id());
+            let mesh = asset_server.load(AmfLabel::Mesh(0).from_asset(file.clone()));
+            let material = material_gray(&mut materials);
+            commands.spawn_scene(assemble_model(mesh, material, Vec3::ZERO));
+            loaded = true;
         } else if STL_EXTS.contains(&ext.as_str()) {
-            let entity = commands.spawn((
-                Mesh3d(asset_server.load(StlLabel::Mesh(0).from_asset(file.clone()))),
-                MeshMaterial3d(materials.add(StandardMaterial {
-                    base_color: Color::srgb(0.5, 0.5, 0.5),
-                    metallic: 0.0,
-                    reflectance: 0.3,
-                    perceptual_roughness: 0.8,
-                    ..default()
-                })),
-                Transform::from_translation(Vec3::ZERO),
-            ));
-            entities.push(entity.id());
+            let mesh = asset_server.load(StlLabel::Mesh(0).from_asset(file.clone()));
+            let material = material_gray(&mut materials);
+            commands.spawn_scene(assemble_model(mesh, material, Vec3::ZERO));
+            loaded = true;
         } else if GCODE_EXTS.contains(&ext.as_str()) {
-            let mat_asset = GCodeLabel::Material(0).from_asset(file.clone());
-            let mat_handle = asset_server.load::<StandardMaterial>(mat_asset);
-            let entity = commands.spawn((
-                Mesh3d(asset_server.load(GCodeLabel::Mesh(0).from_asset(file.clone()))),
-                MeshMaterial3d(mat_handle),
-                Transform::default(),
-            ));
-            entities.push(entity.id());
+            let mesh = asset_server.load(GCodeLabel::Mesh(0).from_asset(file.clone()));
+            let material = asset_server.load(GCodeLabel::Material(0).from_asset(file.clone()));
+            commands.spawn_scene(assemble_model(mesh, material, Vec3::ZERO));
+            loaded = true;
         }
     }
 
-    if entities.is_empty() {
-        let material = MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.5, 0.5, 0.5),
-            metallic: 0.0,
-            reflectance: 0.3,
-            perceptual_roughness: 0.8,
-            ..default()
-        }));
-        let entity = commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(4.0, 4.0, 4.0))),
-            material.clone(),
-            Transform::from_xyz(-8.0, 2.0, -8.0),
-        ));
-        entities.push(entity.id());
-        let entity = commands.spawn((
-            Mesh3d(meshes.add(Sphere::new(2.0))),
-            material.clone(),
-            Transform::from_xyz(8.0, 2.0, -8.0),
-        ));
-        entities.push(entity.id());
-        let entity = commands.spawn((
-            Mesh3d(meshes.add(Extrusion::new(Annulus::new(2.0, 4.0), 2.0))),
-            material,
-            // Transform::from_xyz(0.0, 4.0, 0.0),
-            Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
-                .with_translation(Vec3::new(0.0, 1.0, 0.0)),
-        ));
-        entities.push(entity.id());
+    if !loaded {
+        commands.spawn_scene_list(fallback_scene(&mut meshes, &mut materials));
     }
 }
 
 fn update(mut gizmos: Gizmos) {
     gizmos.grid(
-        Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
+        Quat::from_rotation_x(-FRAC_PI_2),
         UVec2::new(20, 20),
         Vec2::new(1.0, 1.0),
         Color::srgb(0.5, 0.5, 0.5),
     ).outer_edges();
-    
+
     gizmos.axes(
         Transform::from_translation(Vec3::ZERO),
         2.0,

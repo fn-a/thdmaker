@@ -83,8 +83,8 @@ impl ValueData {
             Self::Matrix => "i:matrix",
             Self::ResourceId => "i:resourceid",
         };
-        let elem = BytesStart::new(name);
-        elem
+        
+        BytesStart::new(name)
     }
 }
 

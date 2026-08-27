@@ -56,7 +56,7 @@ impl KeyValue {
     fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let key_elem = BytesStart::new("keyvalue");
         writer.write_event(Event::Start(key_elem))?;
-        writer.write_event(Event::Text(BytesText::new(&self.0.as_str())))?;
+        writer.write_event(Event::Text(BytesText::new(self.0.as_str())))?;
         writer.write_event(Event::End(BytesEnd::new("keyvalue")))?;
 
         Ok(())

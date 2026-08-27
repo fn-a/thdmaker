@@ -1088,9 +1088,9 @@ impl FromStr for Box<dyn NodeType> {
             kvs
         };
         let pick = |k: &str, kvs: &HashMap<String, String>| {
-            kvs.get(k).map(|v| v.clone()).unwrap_or_default()
+            kvs.get(k).cloned().unwrap_or_default()
         };
-        if vs.len() >= 1 {
+        if !vs.is_empty() {
             match vs[0] {
                 "addition" => Ok(Box::new(Addition)),
                 "subtraction" => Ok(Box::new(Subtraction)),

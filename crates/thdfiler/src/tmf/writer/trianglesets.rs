@@ -6,7 +6,7 @@ use super::define::package::*;
 use super::define::trianglesets::*;
 
 impl TriangleSets {
-    pub fn write<W: Write>(self: &Self, writer: &mut Writer<W>) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut Writer<W>) -> Result<()> {
         let mut ts_elem = BytesStart::new("t:trianglesets");
         ts_elem.push_attribute(("xmlns:t", Namespace::TRIANGLESETS_NS));
         writer.write_event(Event::Start(ts_elem))?;

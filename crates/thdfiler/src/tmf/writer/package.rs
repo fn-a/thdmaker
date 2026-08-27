@@ -8,7 +8,7 @@ use super::error::Result;
 use super::define::package::*;
 
 impl ContentTypes {
-    fn write<W: Write>(self: &Self, writer: W) -> Result<()> {
+    fn write<W: Write>(&self, writer: W) -> Result<()> {
         let mut xml_writer = Writer::new_with_indent(writer, b' ', 2);
         xml_writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
 
@@ -58,7 +58,7 @@ impl ContentTypes {
 }
 
 impl Relationships {
-    fn write<W: Write>(self: &Self, writer: W) -> Result<()> {
+    fn write<W: Write>(&self, writer: W) -> Result<()> {
         let mut xml_writer = Writer::new_with_indent(writer, b' ', 2);
         xml_writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
 
@@ -81,7 +81,7 @@ impl Relationships {
 }
 
 impl Package {
-    pub fn write<W: Write + Seek>(self: &Self, writer: W) -> Result<()> {
+    pub fn write<W: Write + Seek>(&self, writer: W) -> Result<()> {
         let mut zip = ZipWriter::new(writer);
         let options = SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated);

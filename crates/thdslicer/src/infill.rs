@@ -1,4 +1,4 @@
-use std::f32::consts;
+use std::f32::consts::PI;
 use super::Config;
 use super::geometry::*;
 
@@ -151,8 +151,8 @@ impl SparseInfill {
                 let cz = z;
 
                 for i in 0..6 {
-                    let angle1 = consts::PI / 3.0 * i as f32;
-                    let angle2 = consts::PI / 3.0 * (i + 1) as f32;
+                    let angle1 = PI / 3.0 * i as f32;
+                    let angle2 = PI / 3.0 * (i + 1) as f32;
 
                     let start = Point2D::new(
                         cx + hex_size / 2.0 * angle1.cos(),
@@ -170,7 +170,7 @@ impl SparseInfill {
                 x += hex_size * 1.5;
             }
 
-            z += hex_size * consts::SQRT_2 * 0.75;
+            z += hex_size * 3.0f32.sqrt() / 2.0;
             row += 1;
         }
 
@@ -198,7 +198,7 @@ impl SparseInfill {
             let radius = i as f32 * offset;
             let mut previous = None;
             for j in 0..resolution {
-                let angle = 2.0 * consts::PI * (j as f32) / (resolution as f32);
+                let angle = 2.0 * PI * (j as f32) / (resolution as f32);
                 let x = center.x + radius * angle.cos();
                 let z = center.z + radius * angle.sin();
                 if let Some(start) = previous {

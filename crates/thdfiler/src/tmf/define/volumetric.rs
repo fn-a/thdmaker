@@ -358,19 +358,15 @@ impl FunctionFromImage3D {
 }
 
 /// Filter method for interpolation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Filter {
     /// Linear interpolation.
+    #[default]
     Linear,
     /// Nearest neighbor interpolation.
     Nearest,
 }
 
-impl Default for Filter {
-    fn default() -> Self {
-        Filter::Linear
-    }
-}
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -436,20 +432,10 @@ impl FromStr for TileStyle {
 
 /// Private extension function.
 /// Owned custom namespace(xmlns attribute)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PrivateExtensionFunction {
     pub attributes: HashMap<String, String>,
     pub content: Option<String>,
-}
-
-impl PrivateExtensionFunction {
-    /// Create a new private extension function.
-    pub fn new() -> Self {
-        Self {
-            attributes: Default::default(),
-            content: None,
-        }
-    }
 }
 
 /// LevelSet element defining shape using a level set function.

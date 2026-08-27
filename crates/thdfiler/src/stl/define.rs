@@ -46,7 +46,7 @@ impl Mesh {
         self.normals.iter().flat_map(|v| {
             // Convert Z-up coordinates to Y-up coordinates
             // Z-up: (x, y, z) -> Y-up: (x, z, -y)
-            iter::repeat([v.x, v.z, -v.y]).take(3)
+            iter::repeat_n([v.x, v.z, -v.y], 3)
         }).collect()
     }
 

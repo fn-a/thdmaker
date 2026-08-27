@@ -178,7 +178,11 @@ impl<'a> Slicer<'a> {
                         pileups.resize(end_i + 1, vec![]);
                     }
 
-                    for idx in sta_i..=end_i {
+                    for (idx, pileup) in pileups.iter_mut()
+                        .enumerate()
+                        .skip(sta_i)
+                        .take(end_i + 1 - sta_i)
+                    {
                         // Find intersection points
                         let mut points = Vec::new();
                         let y_hig = self.config.height(idx);
@@ -210,7 +214,7 @@ impl<'a> Slicer<'a> {
                                 last = points[n - 1];
                             }
                             if first != last {
-                                pileups[idx].push(Segment2D::new(first, last));
+                                pileup.push(Segment2D::new(first, last));
                             }
                         }
                     }
@@ -223,7 +227,7 @@ impl<'a> Slicer<'a> {
         } else {
             for (index, segments) in pileups.into_iter().enumerate() {
                 // The direction of the segments on each layer(pileup) maybe inconsistent
-                let mut layer = Layer::new(index, &self.config);
+                let mut layer = Layer::new(index, self.config);
                 layer.adjacence(segments);
                 layer.delineate();
                 self.layers.push(layer);
