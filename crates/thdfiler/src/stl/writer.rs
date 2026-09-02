@@ -2,11 +2,11 @@ use std::fs::File;
 use std::io::{Cursor, Seek, Write, BufWriter};
 use std::path::Path;
 use byteorder::{LittleEndian, WriteBytesExt};
-use super::error::Result;
+use super::error::{Error, Result};
 use super::define::*;
 /// Write a STL file to a path.
 pub fn write_file<P: AsRef<Path>>(path: P, meshs: &[Mesh], format: Format) -> Result<()> {
-    let file = File::open(path)?;
+    let file = File::create(path)?;
     write(file, meshs, format)
 }
 
@@ -19,30 +19,40 @@ pub fn write_bytes(meshs: &[Mesh], format: Format) -> Result<Vec<u8>> {
 
 /// Write a STL file to a writer.
 pub fn write<W: Write + Seek>(writer: W, meshs: &[Mesh], format: Format) -> Result<()> {
-    let mut writer = BufWriter::new(writer);
-    match format {
-        Format::Ascii => write_ascii(&mut writer, meshs)?,
-        Format::Binary => write_binary(&mut writer, &meshs[0])?,
+    if meshs.is_empty() {
+        Err(Error::EmptyMeshError)
+    } else {
+        let mut writer = BufWriter::new(writer);
+        match format {
+            Format::Ascii => write_ascii(&mut writer, meshs)?,
+            Format::Binary => write_binary(&mut writer, &meshs[0])?,
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 /// Write a STL file to a writer in ASCII format.
 pub fn write_ascii<W: Write + Seek>(writer: W, meshs: &[Mesh]) -> Result<()> {
     let mut writer = BufWriter::new(writer);
     for mesh in meshs {
-        let name = mesh.name.as_deref().unwrap_or_default();
-        writeln!(writer, "{}", ["solid", name].join(" "))?;
-        for (i, v) in mesh.indices.iter().enumerate() {
-            writeln!(writer, "  facet normal {:?}", mesh.normals[i])?;
-            writeln!(writer, "    outer loop")?;
-            writeln!(writer, "     vertex {:?}", mesh.vertices[v[0]])?;
-            writeln!(writer, "     vertex {:?}", mesh.vertices[v[1]])?;
-            writeln!(writer, "     vertex {:?}", mesh.vertices[v[2]])?;
-            writeln!(writer, "    endloop")?;
-            writeln!(writer, "  endfacet")?;
+        let vnonfinite = mesh.vertices.iter().any(|v| !v.is_finite());
+        let nnonfinite = mesh.normals.iter().any(|n| !n.is_finite());
+        if vnonfinite || nnonfinite {
+            Err(Error::NonFiniteValue)?;
+        } else {
+            let name = mesh.name.as_deref().unwrap_or_default();
+            writeln!(writer, "{}", ["solid", name].join(" "))?;
+            for (i, v) in mesh.indices.iter().enumerate() {
+                writeln!(writer, "  facet normal {:?}", mesh.normals[i])?;
+                writeln!(writer, "    outer loop")?;
+                writeln!(writer, "     vertex {:?}", mesh.vertices[v[0]])?;
+                writeln!(writer, "     vertex {:?}", mesh.vertices[v[1]])?;
+                writeln!(writer, "     vertex {:?}", mesh.vertices[v[2]])?;
+                writeln!(writer, "    endloop")?;
+                writeln!(writer, "  endfacet")?;
+            }
+            writeln!(writer, "{}", ["endsolid", name].join(" "))?;
         }
-        writeln!(writer, "{}", ["endsolid", name].join(" "))?;
     }
     Ok(())
 }

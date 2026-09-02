@@ -163,12 +163,12 @@ impl <'a> Indicate for GCodeInd<'a> {
         } else {
             self.config.print_speed
         };
-        self.gcode.push(Line::from(&*G1::default().set_x(segment.end.x).set_z(segment.end.z).set_e(self.coord.e).set_f(speed)));
+        self.gcode.push(Line::from(&*G1::default().set_x(segment.end.x).set_y(segment.end.z).set_e(self.coord.e).set_f(speed)));
     }
 
     /// Idle travel move
     fn idleride(&mut self, segment: &Segment2D, _i: usize, _n: usize) {
-        self.gcode.push(Line::from(&*G0::default().set_x(segment.start.x).set_z(segment.start.z).set_f(self.config.travel_speed)));
+        self.gcode.push(Line::from(&*G0::default().set_x(segment.start.x).set_y(segment.start.z).set_f(self.config.travel_speed)));
     }
 
     /// Extrusion

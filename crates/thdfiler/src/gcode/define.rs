@@ -212,7 +212,10 @@ impl From<&G0> for Line {
         let params = ['X', 'Y', 'Z', 'F'];
         let values = [g0.x, g0.y, g0.z, g0.f];
         for (i, &value) in values.iter().enumerate() {
-            words.push(Word { letter: params[i], value });
+            // Skip unset axes: a bare letter without a value is invalid G-code.
+            if let Some(value) = value {
+                words.push(Word { letter: params[i], value: Some(value) });
+            }
         }
         Line {
             command: Command::GCode(0),
@@ -311,7 +314,10 @@ impl From<&G1> for Line {
         let params = ['X', 'Y', 'Z', 'E', 'F'];
         let values = [g1.x, g1.y, g1.z, g1.e, g1.f];
         for (i, &value) in values.iter().enumerate() {
-            words.push(Word { letter: params[i], value });
+            // Skip unset axes: a bare letter without a value is invalid G-code.
+            if let Some(value) = value {
+                words.push(Word { letter: params[i], value: Some(value) });
+            }
         }
         Line {
             command: Command::GCode(1),

@@ -4,6 +4,74 @@ use quick_xml::Writer;
 use super::error::Result;
 use super::define::package::*;
 use super::define::model::*;
+use super::define::production::*;
+
+/// Extension namespaces actually used by a model document.
+///
+/// Every prefixed element/attribute emitted by this writer must have its prefix
+/// declared on the model root, otherwise the produced 3MF is not
+/// namespace-valid XML and other consumers reject it.
+#[derive(Default)]
+struct NamespaceUsage {
+    material: bool,
+    production: bool,
+    alternatives: bool,
+    slice: bool,
+    volumetric: bool,
+    implicit: bool,
+    displacement: bool,
+    boolean: bool,
+    trianglesets: bool,
+}
+
+impl NamespaceUsage {
+    fn collect(model: &Model) -> Self {
+        // Resource level: extensions holding their own resource containers.
+        let mut usage = Self {
+            material: model.resources.materials.is_some(),
+            slice: model.resources.slices.is_some(),
+            volumetric: model.resources.volumetric.is_some(),
+            implicit: model.resources.implicit.is_some(),
+            displacement: model.resources.displacements.is_some(),
+            ..Default::default()
+        };
+
+        // Production attributes are written on build, items, objects and components.
+        usage.production |= model.build.production.is_some();
+        for item in &model.build.items {
+            usage.production |= item.production.is_some();
+        }
+
+        for object in &model.resources.objects {
+            usage.production |= object.production.is_some();
+            // `pa:modelresolution` is written on the object element itself.
+            if let Some(ref production) = object.production {
+                if production.model_resolution != ModelResolution::default() {
+                    usage.alternatives = true;
+                }
+            }
+
+            match &object.content {
+                ObjectContent::BooleanShape(_) => usage.boolean = true,
+                ObjectContent::Alternatives(_) => usage.alternatives = true,
+                ObjectContent::DisplacementMesh(_) => usage.displacement = true,
+                ObjectContent::LevelSet(_) => usage.volumetric = true,
+                ObjectContent::Mesh(mesh) => {
+                    // volumeid references volumetric volume data.
+                    usage.volumetric |= mesh.volume_id.is_some();
+                    usage.trianglesets |= !mesh.triangle_sets.triangle_sets.is_empty();
+                }
+                ObjectContent::Components(components) => {
+                    for component in &components.components {
+                        usage.production |= component.production.is_some();
+                    }
+                }
+            }
+        }
+
+        usage
+    }
+}
 
 impl Model {
     pub fn write<W: Write>(&self, writer: W) -> Result<()> {
@@ -22,18 +90,46 @@ impl Model {
         }
         
         let mut required_extensions = self.required_extensions.clone();
+        
+        let namespace_usage = NamespaceUsage::collect(self);
+
+        if namespace_usage.material {
+            model_elem.push_attribute(("xmlns:m", Namespace::MATERIALS_NS));
+        }
+        if namespace_usage.production {
+            model_elem.push_attribute(("xmlns:p", Namespace::PRODUCTION_NS));
+        }
+        if namespace_usage.alternatives {
+            model_elem.push_attribute(("xmlns:pa", Namespace::ALTERNATIVES_NS));
+        }
 
         // Slice Extension
         // A 3MF package containing "lowres" objects MUST list the slice extension in the requiredextensions property of the model section
         // If the mesh resolution is "lowres", the 3MF document MUST list the slice extension in the requiredextension attribute of the model section
         // <model ... xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07" requiredextensions="s">
-        if self.resources.slices.is_some() {
+        if namespace_usage.slice {
             model_elem.push_attribute(("xmlns:s", Namespace::SLICE_NS));
             required_extensions.push("s".to_string());
         }
 
+        if namespace_usage.volumetric {
+            model_elem.push_attribute(("xmlns:v", Namespace::VOLUMETRIC_NS));
+        }
+        if namespace_usage.implicit {
+            model_elem.push_attribute(("xmlns:i", Namespace::IMPLICIT_NS));
+        }
+        if namespace_usage.displacement {
+            model_elem.push_attribute(("xmlns:d", Namespace::DISPLACEMENT_NS));
+        }
+        if namespace_usage.boolean {
+            model_elem.push_attribute(("xmlns:bo", Namespace::BOOLEAN_NS));
+        }
+        if namespace_usage.trianglesets {
+            model_elem.push_attribute(("xmlns:t", Namespace::TRIANGLESETS_NS));
+        }
+
         if !required_extensions.is_empty() {
-            model_elem.push_attribute(("requiredextensions", self.required_extensions.join(" ").as_str()));
+            model_elem.push_attribute(("requiredextensions", required_extensions.join(" ").as_str()));
         }
         
         if !self.recommended_extensions.is_empty() {

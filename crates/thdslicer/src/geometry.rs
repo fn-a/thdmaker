@@ -177,8 +177,12 @@ impl Hash for Point2D {
 impl Eq for Point2D {}
 
 impl PartialEq for Point2D {
+    // Equality is defined on the same quantization grid as Hash, so that
+    // equal points always land in the same hash bucket.
     fn eq(&self, other: &Self) -> bool {
-        Cov(self.x) == Cov(other.x) && Cov(self.z) == Cov(other.z)
+        let xeq = Cov::<E4>(self.x).hash() == Cov::<E4>(other.x).hash();
+        let zeq = Cov::<E4>(self.z).hash() == Cov::<E4>(other.z).hash();
+        xeq && zeq
     }
 }
 

@@ -102,6 +102,13 @@ impl From<&[f32; 3]> for Vertex {
     }
 }
 
+impl Vertex {
+    /// Returns true if all coordinates are finite (not NaN or infinity).
+    pub fn is_finite(&self) -> bool {
+        self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
+    }
+}
+
 impl From<&Vertex> for [f32; 3] {
     fn from(v: &Vertex) -> Self {
         [v.x, v.y, v.z]

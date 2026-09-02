@@ -220,7 +220,7 @@ impl Package {
         let path = path.as_str();
         let extension = extension(path);
         let path = absolute(path, None);
-        let content_type = CTYPE_EXT_MAP[&extension].to_string();
+        let content_type = EXT_CTYPE_MAP.get(&extension).cloned().unwrap_or_else(|| "application/octet-stream".to_string());
         self.attachments.insert(
             path,
             Attachment {
@@ -562,6 +562,8 @@ impl Namespace {
     pub const VOLUMETRIC_NS: &str = "http://schemas.3mf.io/3dmanufacturing/volumetric/2022/01";
     /// 3MF Implicit Extension namespace.
     pub const IMPLICIT_NS: &str = "http://schemas.3mf.io/3dmanufacturing/implicit/2023/12";
+    /// 3MF Boolean Operations Extension namespace.
+    pub const BOOLEAN_NS: &str = "http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07";
 }
 
 impl Display for Namespace {

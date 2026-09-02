@@ -10,7 +10,9 @@ impl ImplicitFunction {
         let mut elem = BytesStart::new("i:implicitfunction");
         elem.push_attribute(("id", self.id.to_string().as_str()));
         elem.push_attribute(("identifier", self.identifier.as_str()));
-        elem.push_attribute(("xmlns", Namespace::IMPLICIT_NS));
+        // Must bind the `i` prefix: the element itself is prefixed, so a
+        // default-namespace declaration would leave `i` unbound.
+        elem.push_attribute(("xmlns:i", Namespace::IMPLICIT_NS));
 
         if let Some(ref display_name) = self.display_name {
             elem.push_attribute(("displayname", display_name.as_str()));

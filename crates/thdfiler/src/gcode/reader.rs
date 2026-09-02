@@ -95,7 +95,7 @@ impl Line {
         let mut line = Line::default();
         let mut keep = Vec::new();
         let mut pattern = Pattern::Initial;
-        for (i, c) in input.chars().enumerate() {
+        for (i, c) in input.char_indices() {
             if c.is_whitespace() {
                 continue;
             }
@@ -122,12 +122,14 @@ impl Line {
                     }
                     ';' => {
                         // M104 S0 ;extruder heater off
-                        line.comment = Some(input[(i + 1)..].to_string());
+                        line.comment = Some(input[i + c.len_utf8()..].to_string());
                         break;
                     }
                     '(' => {
                         // G01 X-40 (Position 1)
-                        line.comment = Some(input[(i + 1)..(input.len() - 1)].to_string());
+                        let rest = &input[i + c.len_utf8()..];
+                        let inner = rest.split(')').next().unwrap_or(rest);
+                        line.comment = Some(inner.to_string());
                         break;
                     }
                     _ => return Err(Error::InvalidCharacter(c))

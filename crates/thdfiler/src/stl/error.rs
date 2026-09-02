@@ -20,6 +20,14 @@ pub enum Error {
     #[error("Invalid segment: expected {expected}, received {received}")]
     InvalidSegment{ expected: String, received: String },
 
+    /// No mesh data to write.
+    #[error("No mesh data to write")]
+    EmptyMeshError,
+
+    /// Non-finite value (NaN or infinity) in mesh data.
+    #[error("Non-finite value (NaN or inf) in mesh data")]
+    NonFiniteValue,
+
     /// Unexpected error occurred.
     #[error("Unexpected error: {0}")]
     UnexpectedError(String),
