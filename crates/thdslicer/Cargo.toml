@@ -9,6 +9,4 @@ license = "MIT"
 
 [dependencies]
 thdfiler = { workspace = true }
-bevy = { workspace = true }
-thiserror = "^2.0"
-
+thiserror = { workspace = true }

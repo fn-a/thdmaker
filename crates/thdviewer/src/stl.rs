@@ -2,7 +2,7 @@ use std::fmt;
 use bevy::{
     prelude::*,
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
-    mesh::{Indices, PrimitiveTopology}, reflect::TypePath,
+    reflect::TypePath,
 };
 use thdfiler::stl::{reader, error::Error};
 
@@ -50,21 +50,13 @@ impl AssetLoader for StlLoader {
         let read_meshes = reader::read_bytes(&bytes)?;
         
         if !read_meshes.is_empty() {
-            // Convert all STL meshes to Bevy meshes
+            // The bridge maps the Z-up facets to the Y-up convention, keeps one
+            // flat normal per facet (derived from the winding order when the file
+            // stores a zero one) and turns facet colours into vertex colours.
             let mut view_meshes = Vec::new();
-            
-            for (i, read_mesh) in read_meshes.iter().enumerate() {
-                let mut view_mesh = Mesh::new(PrimitiveTopology::TriangleList, default());
-                
-                // Insert mesh data
-                view_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, read_mesh.get_positions());
-                view_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, read_mesh.get_normals());
-                view_mesh.insert_indices(Indices::U32(read_mesh.get_indices()));
-                
-                // Calculate mesh bounds for better rendering
-                view_mesh.duplicate_vertices();
-                view_mesh.compute_flat_normals();
 
+            for (i, read_mesh) in read_meshes.iter().enumerate() {
+                let view_mesh: Mesh = read_mesh.into();
                 view_meshes.push(load_context.add_labeled_asset(StlLabel::Mesh(i).to_string(), view_mesh));
             }
             

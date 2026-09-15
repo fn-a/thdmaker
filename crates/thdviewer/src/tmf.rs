@@ -1,14 +1,10 @@
 use std::fmt;
-use std::iter;
 use bevy::{
     prelude::*,
-    camera::primitives::MeshAabb,
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
-    mesh::{Indices, PrimitiveTopology},
     world_serialization::WorldAsset, reflect::TypePath,
 };
 use thdfiler::tmf::{reader, error::Error};
-use thdfiler::tmf::define::model::ObjectType;
 
 pub static EXTENSIONS: &[&str] = &["3mf"];
 
@@ -53,91 +49,84 @@ impl AssetLoader for TmfLoader {
         // Read 3MF from bytes
         let package = reader::read_bytes(&bytes)?;
 
-        // Create a world to build the scene
-        let mut world = World::new();
+        // The bridge resolves the build items, the component hierarchy and the
+        // units, groups the materials into vertex colours and bakes every
+        // transform into the vertices.
+        let meshes: Vec<Mesh> = (&package).into();
 
-        let material = StandardMaterial {
-            base_color: Color::srgb(0.5, 0.5, 0.5),
-            metallic: 0.0,
-            reflectance: 0.3,
-            perceptual_roughness: 0.8,
-            ..default()
-        };
-
-        let mut index = 0;
-        let mut glbmin = Vec3::splat(f32::MAX);
-        let mut glbmax = Vec3::splat(f32::MIN);
-        let mut entities = Vec::new();
-
-        // Process all models
-        for model in iter::once(&package.model).chain(package.models.values()) {
-            if !model.build.items.is_empty() {
-                let obj_models = model.get_objects(ObjectType::Model);
-                for obj_model in &obj_models {
-                    if let Some(mesh) = obj_model.get_mesh() {
-                        // Add mesh to world
-                        let mut view_mesh = Mesh::new(PrimitiveTopology::TriangleList, default());
-                        view_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh.get_positions());
-                        view_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, mesh.get_normals());
-                        view_mesh.insert_indices(Indices::U32(mesh.get_indices()));
-                        view_mesh.duplicate_vertices();
-                        view_mesh.compute_flat_normals();
-                        
-                        let mesh_aabb = view_mesh.compute_aabb();
-
-                        // Add mesh to load_context to get a handle
-                        let mesh_handle = load_context.add_labeled_asset(TmfLabel::Mesh(index).to_string(), view_mesh);
-                        let mat_handle = load_context.add_labeled_asset(TmfLabel::Material(index).to_string(), material.clone());
-                        index += 1;
-
-                        let transform = if let Some(trans) = model.build.get_transform(obj_model.id) {
-                            Transform::from_matrix(Mat4::from_cols_array(&trans.matrix_array_4x4()))
-                        } else {
-                            Transform::default()
-                        };
-
-                        if let Some(aabb) = mesh_aabb {
-                            let cormin = aabb.min();
-                            let cormax = aabb.max();
-                            
-                            let corners = [
-                                Vec3::new(cormin.x, cormin.y, cormin.z), Vec3::new(cormin.x, cormin.y, cormax.z),
-                                Vec3::new(cormin.x, cormax.y, cormin.z), Vec3::new(cormin.x, cormax.y, cormax.z),
-                                Vec3::new(cormax.x, cormin.y, cormin.z), Vec3::new(cormax.x, cormin.y, cormax.z),
-                                Vec3::new(cormax.x, cormax.y, cormin.z), Vec3::new(cormax.x, cormax.y, cormax.z),
-                            ];
-
-                            for corner in corners {
-                                let wodpos = transform.transform_point(corner);
-                                glbmin = glbmin.min(wodpos);
-                                glbmax = glbmax.max(wodpos);
-                            }
-                        }
-
-                        entities.push(world.spawn((
-                            Mesh3d(mesh_handle),
-                            MeshMaterial3d(mat_handle),
-                            transform,
-                        )).id());
+        if !meshes.is_empty() {
+            // World bounds of the model, used for the bottom centering below.
+            let mut glbmin = Vec3::splat(f32::MAX);
+            let mut glbmax = Vec3::splat(f32::MIN);
+            for mesh in &meshes {
+                if let Some(positions) = mesh
+                    .attribute(Mesh::ATTRIBUTE_POSITION)
+                    .and_then(|v| v.as_float3())
+                {
+                    for p in positions {
+                        let p = Vec3::from_array(*p);
+                        glbmin = glbmin.min(p);
+                        glbmax = glbmax.max(p);
                     }
                 }
             }
-        }
-        
-        if index > 0 {
-            if glbmin.x != f32::MAX {
-                // Calculate bottom center: X and Z at center, Y at minimum (bottom)
-                let center = Vec3::new((glbmin.x + glbmax.x) / 2.0, glbmin.y, (glbmin.z + glbmax.z) / 2.0);
-                for entity in entities {
-                    if let Some(mut transform) = world.get_mut::<Transform>(entity) {
-                        transform.translation -= center;
-                    }
+    
+            // Bottom center: X and Z at center, Y at minimum (bottom)
+            let offset = if glbmin.x == f32::MAX {
+                Vec3::ZERO
+            } else {
+                Vec3::new(
+                    (glbmin.x + glbmax.x) / 2.0,
+                    glbmin.y,
+                    (glbmin.z + glbmax.z) / 2.0,
+                )
+            };
+    
+            let gray = StandardMaterial {
+                base_color: Color::srgb(0.5, 0.5, 0.5),
+                metallic: 0.0,
+                reflectance: 0.3,
+                perceptual_roughness: 0.8,
+                ..default()
+            };
+    
+            // Meshes whose materials became vertex colours need a white base.
+            let white = StandardMaterial {
+                base_color: Color::WHITE,
+                ..default()
+            };
+    
+            // Create a world to build the scene
+            let mut world = World::new();
+    
+            for (index, mut view_mesh) in meshes.into_iter().enumerate() {
+                // 3MF carries no normals: derive flat ones, which suits the hard
+                // edges of CAD geometry.
+                if view_mesh.attribute(Mesh::ATTRIBUTE_NORMAL).is_none() {
+                    view_mesh.duplicate_vertices();
+                    view_mesh.compute_flat_normals();
                 }
+    
+                let material = if view_mesh.attribute(Mesh::ATTRIBUTE_COLOR).is_some() {
+                    white.clone()
+                } else {
+                    gray.clone()
+                };
+    
+                let mesh_handle = load_context.add_labeled_asset(TmfLabel::Mesh(index).to_string(), view_mesh);
+                let mat_handle = load_context.add_labeled_asset(TmfLabel::Material(index).to_string(), material);
+    
+                world.spawn((
+                    Mesh3d(mesh_handle),
+                    MeshMaterial3d(mat_handle),
+                    Transform::from_translation(-offset),
+                ));
             }
+    
             // Create scene from the world
             let scene = WorldAsset::new(world);
             let scene_handle = load_context.add_labeled_asset(TmfLabel::Scene.to_string(), scene);
-            
+    
             Ok(TmfAsset { scene: scene_handle })
         } else {
             Err(Error::InvalidStructure("No valid meshes found in 3MF data".into()))

@@ -29,6 +29,12 @@ features = ["derive"]
 
 [workspace.dependencies]
 bevy = { version = "^0.19", features = ["bevy_dev_tools"] }
+bevy_asset = { version = "^0.19" }
+bevy_color = { version = "^0.19" }
+bevy_math = { version = "^0.19" }
+bevy_mesh = { version = "^0.19" }
+glam = { version = "^0.32" }
+thiserror = { version = "^2.0" }
 thdfiler = { path = "crates/thdfiler", version = "0.0.5" }
 thdslicer = { path = "crates/thdslicer", version = "0.0.5" }
 thdviewer = { path = "crates/thdviewer", version = "0.0.5" }

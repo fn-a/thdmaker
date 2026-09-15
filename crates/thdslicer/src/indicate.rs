@@ -1,8 +1,4 @@
 use std::f32::consts;
-use bevy::prelude::{
-    ColorToComponents,
-    Color, Vec4,
-};
 use crate::gcode::define::*;
 use super::Config;
 use super::geometry::*;
@@ -214,14 +210,17 @@ impl <'a> Indicate for GCodeInd<'a> {
 }
 
 /// Strip line draw indicator
+///
+/// Produces the preview payload: positions plus linear RGBA vertex
+/// colours, so the viewer needs no colour decision of its own.
 pub struct StripInd<'a> {
     coord: Coord,
     index: usize,
     height: f32,
     pub positions: Vec<[f32; 3]>,
-    pub colors: Vec<Vec4>,
-    solid: Vec4,
-    empty: Vec4,
+    pub colors: Vec<[f32; 4]>,
+    solid: [f32; 4],
+    empty: [f32; 4],
     config: &'a Config,
 }
 
@@ -239,8 +238,8 @@ impl <'a> StripInd<'a> {
             positions: Vec::new(),
             colors: Vec::new(),
             // Colors for different line types
-            solid: Color::srgb(0.0, 1.0, 0.0).to_srgba().to_vec4(),
-            empty: Color::srgb(0.4, 0.5, 0.6).to_srgba().to_vec4(),
+            solid: [0.0, 1.0, 0.0, 1.0],
+            empty: [0.4, 0.5, 0.6, 1.0],
 
             config,
         }

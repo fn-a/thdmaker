@@ -7,11 +7,32 @@ repository = "https://github.com/fn-a/thdmaker"
 description = "A comprehensive 3D file format library supporting AMF, STL, 3MF and other 3D manufacturing formats"
 license = "MIT"
 
+[features]
+default = []
+bevy = ["dep:bevy_asset", "dep:bevy_color", "dep:bevy_math", "dep:bevy_mesh"]
+
 [dependencies]
 glob = "^0.3"
-thiserror = "^2.0"
 byteorder = "^1.5"
 base64 = "^0.22"
+thiserror = { workspace = true }
+glam = { workspace = true }
+
+[dependencies.bevy_color]
+workspace = true
+optional = true
+
+[dependencies.bevy_asset]
+workspace = true
+optional = true
+
+[dependencies.bevy_math]
+workspace = true
+optional = true
+
+[dependencies.bevy_mesh]
+workspace = true
+optional = true
 
 [dependencies.serde]
 version = "^1.0"

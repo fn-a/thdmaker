@@ -1,4 +1,5 @@
 use bevy::{prelude::*, color::palettes::basic::AQUA};
+use thdfiler::tris;
 use thdslicer::{Slicer, Config};
 
 /// Plugin to register slice plugin
@@ -91,12 +92,21 @@ fn toggle(
                     // Create slicer with default config
                     let config = Config::default();
                     let mut slicer = Slicer::new(&config);
-                    
+
+                    // Bridging into the slicer: the mesh only needs positions
+                    // and indices; the transform is already a glam matrix.
+                    let triangle = tris::Mesh::cheapest(mesh);
+                    let matrix = transform.to_matrix();
+
                     // Slice the mesh
-                    if slicer.slice(mesh, transform).is_ok() {
-                        // Get slice mesh and material
-                        let (slice_mesh, slice_material) = slicer.strip();
-                        
+                    if slicer.slice(&triangle, &matrix).is_ok() {
+                        // The slice preview is a line strip and is bridged back like an imported mesh.
+                        let slice_mesh = Mesh::from(slicer.preview());
+                        let slice_material = StandardMaterial {
+                            unlit: true,
+                            ..default()
+                        };
+
                         // Spawn slice entity
                         let mesh_handle = meshes.add(slice_mesh);
                         let material_handle = materials.add(slice_material);

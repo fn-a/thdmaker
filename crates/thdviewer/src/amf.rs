@@ -2,7 +2,7 @@ use std::fmt;
 use bevy::{
     prelude::*,
     asset::{AssetLoader, AssetPath, LoadContext, io::Reader},
-    mesh::{Indices, PrimitiveTopology}, reflect::TypePath,
+    reflect::TypePath,
 };
 use thdfiler::amf::{reader, error::Error};
 
@@ -50,25 +50,21 @@ impl AssetLoader for AmfLoader {
         let document = reader::read_bytes(&bytes)?;
         
         if !document.objects.is_empty() {
-            // Convert all AMF objects to Bevy meshes
+            // The bridge normalises the units to millimetres, resolves the
+            // constellation instances and bakes their transforms into the
+            // vertices.
             let mut view_meshes = Vec::new();
-            
-            for object in &document.objects {
-                let mesh = &object.mesh;
-                if !mesh.vertices.vertices.is_empty() && !mesh.volume.triangles.is_empty() {
-                    let mut view_mesh = Mesh::new(PrimitiveTopology::TriangleList, default());
-                    
-                    // Insert mesh data
-                    view_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh.vertices.get_positions());
-                    view_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, mesh.vertices.get_normals());
-                    view_mesh.insert_indices(Indices::U32(mesh.volume.get_indices()));
-                    
-                    // Calculate mesh bounds for better rendering
+
+            for mut view_mesh in Vec::<Mesh>::from(&document) {
+                // Normals are optional: derive flat normals when the file
+                // did not carry one for every vertex.
+                if view_mesh.attribute(Mesh::ATTRIBUTE_NORMAL).is_none() {
                     view_mesh.duplicate_vertices();
                     view_mesh.compute_flat_normals();
-                    
-                    view_meshes.push(load_context.add_labeled_asset(AmfLabel::Mesh(view_meshes.len()).to_string(), view_mesh));
                 }
+
+                let view_label = AmfLabel::Mesh(view_meshes.len()).to_string();
+                view_meshes.push(load_context.add_labeled_asset(view_label, view_mesh));
             }
             
             Ok(AmfAsset { meshes: view_meshes })

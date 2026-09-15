@@ -10,6 +10,7 @@ A 3D manufacturing file format library: reading and writing AMF, STL, 3MF, GCode
 - `amf`: AMF format
 - `stl`: STL format (binary and ASCII)
 - `gcode`: GCode format
+- `tris`: the intermediate format shared with the slicer and the preview engine
 - `util`: Common utilities such as path handling
 
-Each format module is organized as `define` / `reader` / `writer` / `error`.
+Each file format module is organized as `define` / `reader` / `writer` / `error`; `compat` holds the optional engine bridges, compiled behind the `bevy` feature.

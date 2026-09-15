@@ -8,6 +8,6 @@ description = "Bevy-based viewer UI and asset loading for 3D printing models"
 license = "MIT"
 
 [dependencies]
-thdfiler = { workspace = true }
+thdfiler = { workspace = true, features = ["bevy"] }
 thdslicer = { workspace = true }
 bevy = { workspace = true }

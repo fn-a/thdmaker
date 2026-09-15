@@ -30,8 +30,8 @@ pub struct Document {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum Unit {
     Inch,
-    Millimeter,
     #[default]
+    Millimeter,
     Meter,
     Feet,
     Micron,
@@ -338,6 +338,17 @@ impl Unit {
         (Self::Meter, 1000.0),
         (Self::Micron, 0.001),
     ];
+
+    /// Millimetres per AMF unit; the AMF default is millimetre
+    pub fn scale(&self) -> f64 {
+        match self {
+            Self::Millimeter => 1.0,
+            Self::Inch => 25.4,
+            Self::Feet => 304.8,
+            Self::Meter => 1000.0,
+            Self::Micron => 0.001,
+        }
+    }
 }
 
 impl From<&str> for Unit {

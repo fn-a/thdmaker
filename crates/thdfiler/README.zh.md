@@ -10,8 +10,9 @@
 - `amf`：AMF 格式
 - `stl`：STL 格式（二进制与 ASCII）
 - `gcode`：GCode 格式
+- `tris`：切片库与预览引擎共用的中间格式（桥接层）
 - `util`：路径等通用工具
 
-每个格式模块均按 `define` / `reader` / `writer` / `error` 组织。
+各文件格式模块均按 `define` / `reader` / `writer` / `error` 组织；`compat` 为可选的引擎桥接层，由 `bevy` feature 控制编译。
 
 被 [`thdslicer`](../thdslicer/README.zh.md) 与 [`thdviewer`](../thdviewer/README.zh.md) 依赖。
