@@ -299,41 +299,34 @@ impl<'a> Slicer<'a> {
         indic.initiation();
 
         let laylen = self.layers.len();
-        
+
         // Process each layer.
         for (index, layer) in self.layers.iter().enumerate() {
             indic.laybegin(index, laylen);
 
-            // Print perimeters.
+            // Print perimeters. A loop begins with the ride to its first point,
+            // which printing that first segment takes care of.
             for segments in layer.limbics.iter() {
-                let n = segments.len();
-                for (i, segment) in segments.iter().enumerate() {
-                    if i == 0 {
-                        // Move to start (travel move) - map Point2D (x, z) to printer (X, Y).
-                        indic.idleing(segment, i, n);
-                    }
-
-                    indic.drawing(segment, i, n);
+                for segment in segments.iter() {
+                    indic.drawing(segment);
                 }
             }
 
-            let n = layer.infills.len();
-            // Print infill
-            for (i, (solided, segment)) in layer.infills.iter().enumerate() {
+            // Print infill. A span that is not solid is a hole in the fill: the
+            // head does not print it, and the ride across it belongs to the next
+            // printed span.
+            for (solided, segment) in layer.infills.iter() {
                 if *solided {
-                    // Enable extrusion for solid segments.
-                    indic.extruing();
-                    indic.drawing(segment, i, n);
-                } else {
-                    // Travel move - map Point2D (x, z) to printer (X, Y).
-                    indic.retracting();
-                    indic.idleing(segment, i, n);
+                    indic.drawing(segment);
                 }
             }
 
+            // Pull the filament back before the head leaves the layer.
+            indic.retracting();
             indic.layfinish();
         }
 
+        indic.retracting();
         indic.completion();
     }
 }

@@ -1,86 +1,130 @@
-use std::f32::consts;
+use std::f32::consts::PI;
 use crate::gcode::define::*;
 use super::Config;
 use super::geometry::*;
 
 pub use crate::gcode::define::GCode;
 
-#[derive(Debug, Clone, Copy)]
+/// The state of the head: where it stands in the layer plane, where its extruder
+/// axis stands, and how much of the filament is pulled back right now.
+///
+/// The driving behaviours live on [`Indicate`] and and work through [`Indicate::coord`],
+/// so an implementation keeps the head state without having
+/// it handed around, and only renders the moves it is told about. Every drive
+/// moves the head the same way, which is what keeps the G-code and the preview
+/// describing one toolpath.
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Coord {
     pub x: f32,
     pub z: f32,
-    pub e: f32,
+    /// Position of the extruder axis, in millimetres of filament. It is the value
+    /// the G-code writes as its `E` word, and it runs backwards while retracting.
+    pub extruder: f32,
+    /// Filament pulled back, `0` while the filament is not pulled back. The print
+    /// after a ride pushes exactly this much back.
+    pub retracted: f32,
 }
 
+impl Coord {
+    /// Whether the head already stands at `point`.
+    pub fn at(&self, point: Point2D) -> bool {
+        Cov(self.x) == Cov(point.x) && Cov(self.z) == Cov(point.z)
+    }
+}
+
+/// The drive of the head.
+///
+/// The methods that end in `-ing` are the driving behaviours: `drawing` prints a
+/// segment, `idleing` rides to the start of one, `extruing` and `retracting` move
+/// the filament. They work through coord, so an implementation
+/// keeps the head state and only renders the moves it is told about, which is
+/// what keeps the G-code and the preview on one toolpath.
 pub trait Indicate {
     /// Generator start
     fn initiation(&mut self);
     /// Layer begin
     fn laybegin(&mut self, index: usize, len: usize);
-    /// Draw line carry
-    fn drawing(&mut self, segment: &Segment2D, i: usize, n: usize) {
-        let config = self.config();
-        let index = self.index();
-        let filament_width = config.filament_width;
-        let first_height = config.first_height;
-        let layer_height = config.layer_height;
-        let line_width = config.line_width;
-        let extrusion_mult = config.extrusion_multiplier;
-        let coord = self.coord();
-        let dx = segment.end.x - coord.x;
-        let dz = segment.end.z - coord.z;
-        let length = (dx * dx + dz * dz).sqrt();
-
+    /// Draw line carry: print `segment`.
+    ///
+    /// A print move starts where the head stands, so a head that is elsewhere
+    /// first rides to the start of the segment. That ride is part of printing the
+    /// segment, so both the G-code and the preview see it.
+    fn drawing(&mut self, segment: &Segment2D) {
+        let length = segment.length();
+        // A zero length segment has no path to print and no filament to push.
         if length > Cov::<N6>::epow() {
-            // Calculate extrusion amount
-            let filament = consts::PI * filament_width * filament_width / 4.0; // 1.75mm filament
-            let layheight = if index == 0 {
-                first_height
-            } else {
-                layer_height
+            if !self.coord().at(segment.start) {
+                self.idleing(segment);
+            }
+
+            self.extruing();
+    
+            let extrusion = {
+                let config = self.config();
+                let layheight = if self.index() == 0 {
+                    config.first_height
+                } else {
+                    config.layer_height
+                };
+                // 1.75mm filament
+                let filament = PI * config.filament_width * config.filament_width / 4.0;
+                let path_area = config.line_width * layheight;
+    
+                length * path_area / filament * config.extrusion_multiplier
             };
-            let path_area = line_width * layheight;
-            let extrusion = length * path_area / filament * extrusion_mult;
 
-            coord.e += extrusion;
-
-            coord.x = segment.end.x;
-            coord.z = segment.end.z;
-            self.drawline(segment, i, n);
+            {
+                let coord = self.coord();
+                coord.extruder += extrusion;
+                coord.x = segment.end.x;
+                coord.z = segment.end.z;
+            }
+    
+            self.drawline(segment);
         }
     }
     /// Draw line implement
-    fn drawline(&mut self, segment: &Segment2D, i: usize, n: usize);
-    /// Idle ride carry
-    fn idleing(&mut self, segment: &Segment2D, i: usize, n: usize) {
-        let coord = self.coord();
-        coord.x = segment.start.x;
-        coord.z = segment.start.z;
-        self.idleride(segment, i, n);
+    fn drawline(&mut self, segment: &Segment2D);
+    /// Idle ride carry: ride to the start of `segment`, without printing.
+    fn idleing(&mut self, segment: &Segment2D) {
+        self.retracting();
+
+        {
+            let coord = self.coord();
+            coord.x = segment.start.x;
+            coord.z = segment.start.z;
+        }
+
+        self.idleride(segment);
     }
     /// Idle ride implement
-    fn idleride(&mut self, segment: &Segment2D, i: usize, n: usize);
-    /// Extrusion carry
+    fn idleride(&mut self, segment: &Segment2D);
+    /// Extrusion carry: push the filament forward again, when printing resumes
+    /// after a ride, so the pull back of the ride is undone exactly once.
     fn extruing(&mut self) {
-        let config = self.config();
-        let enable = config.enable_retraction;
-        let distance = config.retraction_distance;
-        if enable {
+        let enabled = self.config().enable_retraction;
+        // The filament goes forward by exactly what the ride pulled back.
+        let pulled = self.coord().retracted;
+        if enabled && pulled > 0.0 {
             let coord = self.coord();
-            coord.e += distance;
+            coord.extruder += pulled;
+            coord.retracted = 0.0;
             self.extrusion();
         }
     }
     /// Extrusion implement
     fn extrusion(&mut self);
-    /// Retraction carry
+    /// Retraction carry: pull the filament back, before the head rides without
+    /// printing, and only once for that ride.
     fn retracting(&mut self) {
-        let config = self.config();
-        let enable = config.enable_retraction;
-        let distance = config.retraction_distance;
-        if enable {
+        let (enabled, distance) = {
+            let config = self.config();
+            (config.enable_retraction, config.retraction_distance)
+        };
+        if enabled && self.coord().retracted <= 0.0 {
             let coord = self.coord();
-            coord.e -= distance;
+            coord.extruder -= distance;
+            coord.retracted = distance;
             self.retraction();
         }
     }
@@ -111,11 +155,7 @@ impl <'a> GCodeInd<'a> {
     /// Create a new [`GCodeInd`]
     pub fn new(config: &'a Config) -> Self {
         Self {
-            coord: Coord {
-                x: 0.0,
-                z: 0.0,
-                e: 0.0,
-            },
+            coord: Coord::default(),
             gcode: GCode::default(),
             index: 0,
             config,
@@ -151,30 +191,30 @@ impl <'a> Indicate for GCodeInd<'a> {
         self.gcode.push(Line::from(&*G1::default().set_z(self.config.height(self.index)).set_f(self.config.travel_speed)));
     }
 
-    /// Draw a line segment
-    fn drawline(&mut self, segment: &Segment2D, _i: usize, _n: usize) {
+    /// Draw a line segment: the head stands at its start, so the move prints it.
+    fn drawline(&mut self, segment: &Segment2D) {
         // Print segment - map Point2D (x, z) to printer (X, Y)
         let speed = if self.index == 0 {
             self.config.first_speed
         } else {
             self.config.print_speed
         };
-        self.gcode.push(Line::from(&*G1::default().set_x(segment.end.x).set_y(segment.end.z).set_e(self.coord.e).set_f(speed)));
+        self.gcode.push(Line::from(&*G1::default().set_x(segment.end.x).set_y(segment.end.z).set_e(self.coord.extruder).set_f(speed)));
     }
 
-    /// Idle travel move
-    fn idleride(&mut self, segment: &Segment2D, _i: usize, _n: usize) {
+    /// Idle travel move, to the start of the segment
+    fn idleride(&mut self, segment: &Segment2D) {
         self.gcode.push(Line::from(&*G0::default().set_x(segment.start.x).set_y(segment.start.z).set_f(self.config.travel_speed)));
     }
 
     /// Extrusion
     fn extrusion(&mut self) {
-        self.gcode.push(Line::from(&*G1::default().set_e(self.coord.e).set_f(self.config.retraction_speed)));
+        self.gcode.push(Line::from(&*G1::default().set_e(self.coord.extruder).set_f(self.config.retraction_speed)));
     }
 
     /// Retraction
     fn retraction(&mut self) {
-        self.gcode.push(Line::from(&*G1::default().set_e(self.coord.e).set_f(self.config.retraction_speed)));
+        self.gcode.push(Line::from(&*G1::default().set_e(self.coord.extruder).set_f(self.config.retraction_speed)));
     }
 
     /// Layer finish, retract and move to next layer height
@@ -228,11 +268,7 @@ impl <'a> StripInd<'a> {
     /// Create a new [`StripInd`]
     pub fn new(config: &'a Config) -> Self {
         Self {
-            coord: Coord {
-                x: 0.0,
-                z: 0.0,
-                e: 0.0,
-            },
+            coord: Coord::default(),
             index: 0,
             height: 0.0,
             positions: Vec::new(),
@@ -244,55 +280,55 @@ impl <'a> StripInd<'a> {
             config,
         }
     }
+
+    /// Append a vertex at the current layer height.
+    ///
+    /// A line strip cannot change colour in the middle of a leg, so the previous
+    /// vertex is repeated when the colour changes: the repeated pair has no
+    /// length and every leg ends up with a single colour.
+    fn push(&mut self, x: f32, z: f32, color: [f32; 4]) {
+        let lastpos = self.positions.last().copied();
+        let lastclr = self.colors.last().copied();
+        if let (Some(previous), Some(last)) = (lastpos, lastclr) {
+            if last != color {
+                self.positions.push(previous);
+                self.colors.push(color);
+            }
+        }
+
+        self.positions.push([x, self.height, z]);
+        self.colors.push(color);
+    }
 }
 
 impl <'a> Indicate for StripInd<'a> {
     /// Strip start
     fn initiation(&mut self) {
-        self.positions.push([0.0, 0.0, 0.0]);
-        self.colors.push(self.solid);
+        // The head starts at the origin, idle.
+        self.push(0.0, 0.0, self.empty);
     }
 
     /// Layer begin, move to layer height
     fn laybegin(&mut self, index: usize, _: usize) {
         self.index = index;
         self.height = self.config.height(self.index);
-    }
-    
-    /// Draw a line segment
-    fn drawline(&mut self, segment: &Segment2D, _i: usize, _n: usize) {
-        if let Some(last) = self.colors.last() {
-            let lpos = self.positions[self.positions.len() - 1];
-            if *last != self.solid {
-                self.positions.push(lpos);
-                self.colors.push(self.solid);
-            } else {
-                if segment.start.x != lpos[0] || segment.start.z != lpos[2] {
-                    self.positions.push(lpos);
-                    self.colors.push(self.empty);
-                    self.positions.push([segment.start.x, self.height, segment.start.z]);
-                    self.colors.push(self.empty);
-                }
-            }
-            self.positions.push([segment.start.x, self.height, segment.start.z]);
-            self.colors.push(self.solid);
+
+        // The head rises where it stands, so the ride into this layer starts from
+        // the height it was at.
+        if let Some(last) = self.positions.last() {
+            self.push(last[0], last[2], self.empty);
         }
-        self.positions.push([segment.end.x, self.height, segment.end.z]);
-        self.colors.push(self.solid);
     }
 
-    /// Idle travel move
-    fn idleride(&mut self, segment: &Segment2D, _i: usize, _n: usize) {
-        if let Some(last) = self.colors.last() {
-            if *last != self.empty {
-                self.positions.push(self.positions[self.positions.len() - 1]);
-                self.colors.push(self.empty);
-            }
-            self.positions.push([segment.start.x, self.height, segment.start.z]);
-            self.colors.push(self.empty);
-        }
-        self.positions.push([segment.end.x, self.height, segment.end.z]);
-        self.colors.push(self.empty);
+    /// Draw a line segment: the head stands at its start, so the leg prints it.
+    fn drawline(&mut self, segment: &Segment2D) {
+        self.push(segment.start.x, segment.start.z, self.solid);
+        self.push(segment.end.x, segment.end.z, self.solid);
+    }
+
+    /// Idle travel move, to the start of the segment
+    fn idleride(&mut self, segment: &Segment2D) {
+        self.push(segment.start.x, segment.start.z, self.empty);
     }
 
     /// Extrusion
