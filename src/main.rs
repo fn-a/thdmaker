@@ -1,4 +1,3 @@
-use std::f32::consts::FRAC_PI_2;
 use glob::glob;
 use clap::Parser;
 use bevy::prelude::*;
@@ -11,6 +10,8 @@ use thdviewer::{
     tmf::{EXTENSIONS as TMF_EXTS, TmfPlugin, TmfLabel},
     gcode::{EXTENSIONS as GCODE_EXTS, GCodePlugin, GCodeLabel},
 };
+
+mod shapes;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -149,36 +150,7 @@ fn fallback_scene(
     materials: &mut Assets<StandardMaterial>,
 ) -> impl SceneList {
     let material = material_gray(materials);
-    let cube = meshes.add(Cuboid::new(4.0, 4.0, 4.0));
-    let sphere = meshes.add(Sphere::new(2.0));
-    let annulus = meshes.add(Extrusion::new(Annulus::new(2.0, 4.0), 2.0));
-    let cube_mat = material.clone();
-    let sphere_mat = material.clone();
-    bsn_list![
-        (
-            #Cube
-            Mesh3d(cube)
-            MeshMaterial3d::<StandardMaterial>(cube_mat)
-            Transform { translation: Vec3::new(-8.0, 2.0, -8.0) }
-        ),
-        (
-            #Sphere
-            Mesh3d(sphere)
-            MeshMaterial3d::<StandardMaterial>(sphere_mat)
-            Transform { translation: Vec3::new(8.0, 2.0, -8.0) }
-        ),
-        (
-            #Annulus
-            Mesh3d(annulus)
-            MeshMaterial3d::<StandardMaterial>(material)
-            Transform {
-                rotation: Quat::from_rotation_x(-FRAC_PI_2),
-                // Vertically placed rotation_z translation(0.0, 4.0, 0.0),
-                // Horizontally placed rotation_x translation(0.0, 1.0, 0.0),
-                translation: Vec3::new(0.0, 1.0, 0.0),
-            }
-        ),
-    ]
+    shapes::demo(meshes, material)
 }
 
 fn setup(
