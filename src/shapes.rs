@@ -10,6 +10,7 @@ use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_6, PI, TAU};
 use bevy::prelude::*;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::PrimitiveTopology;
+use thdviewer::slice::SliceModel;
 
 // Irregular shape helpers
 //
@@ -518,6 +519,7 @@ fn shape(
     let translation = Vec3::new(x, -lowest(meshes, &mesh, rotation), z);
     bsn! {
         Name(name)
+        SliceModel
         Mesh3d(mesh)
         MeshMaterial3d::<StandardMaterial>(material)
         Transform { rotation: rotation, translation: translation }

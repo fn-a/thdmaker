@@ -6,15 +6,9 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CameraState>()
-            .add_systems(Startup, setup)
+        app.add_systems(Startup, setup)
             .add_systems(Update, update);
     }
-}
-
-#[derive(Resource, Default)]
-pub struct CameraState {
-    pub focused: Option<Entity>,
 }
 
 #[derive(Component)]
@@ -62,10 +56,9 @@ pub fn update(
     muscroll: Res<AccumulatedMouseScroll>,
     mouse: Res<ButtonInput<MouseButton>>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    camerate: Res<CameraState>,
     gizstate: Res<TransformGizmoState>,
     mut camera: Query<(&mut OrbitCamera, &mut Transform, &Projection)>,
-    focusq: Query<&GlobalTransform>,
+    focusq: Query<&GlobalTransform, With<TransformGizmoFocus>>,
 ) -> Result {
     let window = windows.single()?;
     let window_w = window.width();
@@ -77,13 +70,11 @@ pub fn update(
     let (mut orbit, mut transform, projection) = camera.single_mut()?;
 
     if keyboard.just_pressed(KeyCode::KeyF) {
-        // F key: focus on selected entity
-        if let Some(entity) = camerate.focused {
-            if let Ok(gtrans) = focusq.get(entity) {
-                orbit.focus = gtrans.translation();
-                orbit.radius = 5.0;
-                *transform = orbitrans(&orbit);
-            }
+        // F key: focus on the selected part
+        if let Ok(gtrans) = focusq.single() {
+            orbit.focus = gtrans.translation();
+            orbit.radius = 5.0;
+            *transform = orbitrans(&orbit);
         }
     } else if keyboard.just_pressed(KeyCode::KeyR) {
         // R key: reset camera

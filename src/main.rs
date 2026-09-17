@@ -3,8 +3,9 @@ use clap::Parser;
 use bevy::prelude::*;
 use thdfiler::util;
 use thdviewer::{
-    camera::CameraPlugin, ui::UIPlugin, slice::SlicePlugin,
+    camera::CameraPlugin, ui::UIPlugin,
     gizmo::GizmoPlugin, tools::ToolsPlugin,
+    slice::{SlicePlugin, SliceModel, SliceScene},
     stl::{EXTENSIONS as STL_EXTS, StlPlugin, StlLabel},
     amf::{EXTENSIONS as AMF_EXTS, AmfPlugin, AmfLabel},
     tmf::{EXTENSIONS as TMF_EXTS, TmfPlugin, TmfLabel},
@@ -138,6 +139,7 @@ fn assemble_model(
     translation: Vec3,
 ) -> impl Scene {
     bsn! {
+        SliceModel
         Mesh3d(mesh)
         MeshMaterial3d::<StandardMaterial>(material)
         Transform { translation: translation }
@@ -170,6 +172,7 @@ fn setup(
             let scene = asset_server.load(TmfLabel::Scene.from_asset(file.clone()));
             commands.spawn_scene(bsn! {
                 WorldAssetRoot(scene)
+                SliceScene
                 Name(format!("Model: {file}"))
             });
             loaded = true;

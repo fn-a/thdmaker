@@ -1,4 +1,5 @@
-use bevy::{prelude::*, color::palettes::basic::AQUA};
+use bevy::prelude::*;
+use bevy::pbr::wireframe::{Wireframe, WireframeColor, WireframePlugin};
 use thdfiler::tris;
 use thdslicer::{Slicer, Config};
 
@@ -7,10 +8,23 @@ pub struct SlicePlugin;
 
 impl Plugin for SlicePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, toggle)
-            .init_resource::<SliceState>();
+        app.add_plugins(WireframePlugin::default())
+            .init_resource::<SliceState>()
+            .add_systems(Update, (disperse, wireframe, transparent, sliceview));
     }
 }
+
+/// A model: the meshes the viewer's tools work on.
+#[derive(Component, Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SliceModel;
+
+/// Root of a spawned scene whose meshes are models.
+#[derive(Component, Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SliceScene;
+
+/// A model's toolpath, drawn while the slice view is on.
+#[derive(Component)]
+pub struct SlicePreview;
 
 /// State for slice view
 #[derive(Resource, Clone, Default)]
@@ -21,116 +35,161 @@ struct SliceState {
     sliced: bool,
     /// Whether transparent mode is enabled (V key)
     transparent: bool,
-    /// Entity for slice mesh display
-    entities: Vec<(Entity, Entity)>,
+    /// Material the previews are drawn with, made once on first use.
+    material: Option<Handle<StandardMaterial>>,
 }
 
-/// Toggle mode
-fn toggle(
+/// Mark the meshes that appear under a [`SliceScene`] root as models.
+fn disperse(
+    mut commands: Commands,
+    added: Query<Entity, (With<Mesh3d>, Without<SliceModel>, Added<Mesh3d>)>,
+    parents: Query<&ChildOf>,
+    scenes: Query<(), With<SliceScene>>,
+) {
+    for entity in &added {
+        let mut cursor = entity;
+        while let Ok(relate) = parents.get(cursor) {
+            cursor = relate.parent();
+            if scenes.contains(cursor) {
+                commands.entity(entity).insert(SliceModel);
+                break;
+            }
+        }
+    }
+}
+
+/// X: outline the models.
+fn wireframe(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+    mut state: ResMut<SliceState>,
+    models: Query<Entity, (With<SliceModel>, With<Mesh3d>)>,
+) {
+    if keyboard.just_pressed(KeyCode::KeyX) {
+        state.wireframed = !state.wireframed;
+    
+        for entity in &models {
+            if state.wireframed {
+                commands.entity(entity).insert((
+                    Wireframe,
+                    WireframeColor {
+                        color: Color::srgb(0.25, 0.95, 1.0),
+                    },
+                ));
+            } else {
+                commands
+                    .entity(entity)
+                    .remove::<(Wireframe, WireframeColor)>();
+            }
+        }
+    }
+}
+
+/// V: make the models translucent, so the toolpath inside them shows through.
+fn transparent(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+    mut state: ResMut<SliceState>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    models: Query<(Entity, &MeshMaterial3d<StandardMaterial>), (With<SliceModel>, With<Mesh3d>)>,
+) {
+    if keyboard.just_pressed(KeyCode::KeyV) {
+        state.transparent = !state.transparent;
+        let alpha = if state.transparent { 0.3 } else { 1.0 };
+    
+        for (entity, material) in &models {
+            // The material itself is edited: it is shared, and every model changes.
+            if let Some(mut source) = materials.get_mut(&material.0) {
+                source.base_color = source.base_color.with_alpha(alpha);
+                source.alpha_mode = if state.transparent {
+                    AlphaMode::Blend
+                } else {
+                    AlphaMode::Opaque
+                };
+            }
+    
+            // While sliced the part is hidden, so this is what brings it back.
+            if state.sliced {
+                commands.entity(entity).insert(if state.transparent {
+                    Visibility::Visible
+                } else {
+                    Visibility::Hidden
+                });
+            }
+        }
+    }
+}
+
+/// S: draw every model's toolpath.
+fn sliceview(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     mut state: ResMut<SliceState>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    query: Query<(Entity, &Mesh3d, &Transform, &MeshMaterial3d<StandardMaterial>)>,
-    mut gizmos: Gizmos,
+    models: Query<(Entity, &Mesh3d, &GlobalTransform), (With<SliceModel>, With<Mesh3d>)>,
+    previews: Query<Entity, With<SlicePreview>>
 ) {
-    let mut pressed = (false, false);
-    if keyboard.just_pressed(KeyCode::KeyX) {
-        state.wireframed = !state.wireframed;
-    } else if keyboard.just_pressed(KeyCode::KeyS) {
+    if keyboard.just_pressed(KeyCode::KeyS) {
         state.sliced = !state.sliced;
-        pressed.0 = true;
-    } else if keyboard.just_pressed(KeyCode::KeyV) {
-        state.transparent = !state.transparent;
-        pressed.1 = true;
-    }
-
-    if pressed.0 || pressed.1 || state.wireframed {
-        for (entity, handle, transform, material) in query.iter() {
-            if let Some(mesh) = meshes.get(&handle.0) {
-                if state.wireframed {
-                    // Display wireframe for all meshes using gizmos
-                    let vertices = mesh.attribute(Mesh::ATTRIBUTE_POSITION)
-                        .map(|v| v.as_float3().unwrap_or_default())
-                        .unwrap_or_default();
-                    if let Some(indices) = mesh.indices() {
-                        // Draw wireframe lines
-                        for index in indices.iter().collect::<Vec<_>>().chunks(3) {
-                            if index.len() == 3 {
-                                let v0 = vertices[index[0]];
-                                let v1 = vertices[index[1]];
-                                let v2 = vertices[index[2]];
-                                
-                                let p0 = Vec3::new(v0[0], v0[1], v0[2]);
-                                let p1 = Vec3::new(v1[0], v1[1], v1[2]);
-                                let p2 = Vec3::new(v2[0], v2[1], v2[2]);
-                                let p0 = transform.transform_point(p0);
-                                let p1 = transform.transform_point(p1);
-                                let p2 = transform.transform_point(p2);
-                                gizmos.line(p0, p1, AQUA);
-                                gizmos.line(p1, p2, AQUA);
-                                gizmos.line(p2, p0, AQUA);
-                            }
-                        }
-                    }
+    
+        if !state.sliced {
+            for (entity, ..) in &models {
+                commands.entity(entity).insert(Visibility::Visible);
+            }
+            for entity in &previews {
+                commands.entity(entity).despawn();
+            }
+        } else {
+            // One unlit material serves every preview: the colours are per vertex.
+            let pviewmatl = match state.material.clone() {
+                Some(handle) => handle,
+                None => {
+                    let handle = materials.add(StandardMaterial {
+                        unlit: true,
+                        ..default()
+                    });
+                    state.material = Some(handle.clone());
+                    handle
                 }
-
-                if pressed.1 && !state.sliced {
-                    if let Some(mut mat) = materials.get_mut(&material.0) {
-                        if state.transparent {
-                            mat.base_color = mat.base_color.with_alpha(0.3);
-                            mat.alpha_mode = AlphaMode::Blend;
-                        } else {
-                            mat.base_color = mat.base_color.with_alpha(1.0);
-                            mat.alpha_mode = AlphaMode::Opaque;
-                        }
-                    }
-                }
-
-                if pressed.0 && state.sliced {
-                    // Create slicer with default config
+            };
+        
+            for (entity, mesh, transform) in &models {
+                if let Some(source) = meshes.get(&mesh.0) {
                     let config = Config::default();
                     let mut slicer = Slicer::new(&config);
-
-                    // Bridging into the slicer: the mesh only needs positions
-                    // and indices; the transform is already a glam matrix.
-                    let triangle = tris::Mesh::cheapest(mesh);
-                    let matrix = transform.to_matrix();
-
-                    // Slice the mesh
-                    if slicer.slice(&triangle, &matrix).is_ok() {
-                        // The slice preview is a line strip and is bridged back like an imported mesh.
-                        let slice_mesh = Mesh::from(slicer.preview());
-                        let slice_material = StandardMaterial {
-                            unlit: true,
-                            ..default()
-                        };
-
-                        // Spawn slice entity
-                        let mesh_handle = meshes.add(slice_mesh);
-                        let material_handle = materials.add(slice_material);
-                        
-                        let slice_entity = commands.spawn((
-                            Mesh3d(mesh_handle),
-                            MeshMaterial3d(material_handle),
-                        )).id();
+                    // Sliced in world space, the frame the printer works in.
+                    let world = transform.to_matrix();
+                    if slicer.slice(&tris::Mesh::cheapest(source), &world).is_ok(){
+                        let mut preview = slicer.preview();
+                        // Baked back into the model's own space, so the child preview
+                        // follows every move the handles make.
+                        let matrix = world.inverse();
+                        for point in preview.positions.iter_mut() {
+                            *point = matrix.transform_point3(Vec3::from(*point)).to_array();
+                        }
+                
                         if !state.transparent {
                             commands.entity(entity).insert(Visibility::Hidden);
                         }
-                        state.entities.push((entity, slice_entity));
+
+                        commands.spawn((
+                            Mesh3d(meshes.add(Mesh::from(preview))),
+                            MeshMaterial3d(pviewmatl.clone()),
+                            ChildOf(entity),
+                            // Visible outright: a visible child wins over a hidden parent.
+                            Visibility::Visible,
+                            SlicePreview,
+                            // A click on the toolpath selects the model, and it blocks
+                            // nothing behind it.
+                            Pickable {
+                                is_hoverable: true,
+                                should_block_lower: false,
+                            },
+                        ));
                     }
                 }
             }
-        }
-
-        if pressed.0 && !state.sliced {
-             // If slice mode is disabled, remove slice entity
-            for (entity, slice) in state.entities.iter() {
-                commands.entity(*slice).despawn();
-                commands.entity(*entity).insert(Visibility::Visible);
-            }
-            state.entities.clear();
         }
     }
 }

@@ -49,6 +49,7 @@ fn update(
 
     let txts = [
         "Left Click: Select Object",
+        "Left Click Empty Space: Clear Selection",
         "Middle Click: Pan",
         "Right Click: Pan",
         "Scroll: Zoom",
