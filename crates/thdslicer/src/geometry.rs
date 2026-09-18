@@ -1,6 +1,7 @@
 
 use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher, BuildHasherDefault};
 
 // /// 10e-5, 0.00001
 // pub const N5:u32 = 0x3727C5AC;
@@ -76,6 +77,91 @@ impl Ord for Cov {
 impl PartialOrd for Cov {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+/// A [`HashMap`] keyed with [`Cov`].
+#[allow(unused)]
+pub type CovMap<K, V> = HashMap<K, V, BuildHasherDefault<Cov>>;
+
+/// A cheap hasher for the maps the stitching uses.
+///
+/// The keys are the coordinates of the crossings - two or four small integers -
+/// and the default hasher is built to withstand keys an attacker chooses, which
+/// these are not. Sketching the bytes of each key instead costs a visible share
+/// of the time a layer takes to stitch, and nothing about the output depends on
+/// the hash values themselves.
+#[derive(Default)]
+pub struct Qik(u64);
+
+impl Hasher for Qik {
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.0 = (self.0 ^ u64::from(*byte)).wrapping_mul(0x0100_0000_01b3);
+        }
+    }
+
+    #[inline]
+    fn write_i32(&mut self, value: i32) {
+        self.write_i64(i64::from(value));
+    }
+
+    #[inline]
+    fn write_i64(&mut self, value: i64) {
+        self.0 = (self.0 ^ value as u64).wrapping_mul(0x517c_c1b7_2722_0a95);
+        self.0 ^= self.0 >> 29;
+    }
+}
+
+/// A [`HashMap`] keyed with [`Qik`].
+#[allow(unused)]
+pub type QikMap<K, V> = HashMap<K, V, BuildHasherDefault<Qik>>;
+
+impl Qik {
+    /// The point that stands for `point` in the stitched contours: an already seen
+    /// point within a cell of the lookup grid, or `point` itself.
+    ///
+    /// The ends are welded because the two triangles that met along an edge
+    /// interpolate their shared crossing from opposite ends, so their results agree
+    /// only to within rounding. Left alone they can land in different cells of the
+    /// lookup grid, the pair is then never joined, the loop stays open and every
+    /// segment of the contour it belongs to is thrown away.
+    pub fn weld(welded: &mut QikMap<Point2D, Point2D>, point: Point2D) -> Point2D {
+        // The common case: another end already claimed this cell.
+        if let Some(found) = welded.get(&point) {
+            *found
+        } else {
+            // One cell of the grid `Point2D` hashes and compares on. A point that landed
+            // a cell over from the end it has to meet is found by looking at the eight
+            // cells around this one.
+            let step = 1.0 / Cov::<E4>::epow();
+            let mut nearest: Option<Point2D> = None;
+            let mut closest = step;
+            for dx in [-step, 0.0, step] {
+                for dz in [-step, 0.0, step] {
+                    if let Some(found) = welded.get(&Point2D::new(point.x + dx, point.z + dz)) {
+                        let apart = (found.x - point.x).abs().max((found.z - point.z).abs());
+                        if apart <= closest {
+                            closest = apart;
+                            nearest = Some(*found);
+                        }
+                    }
+                }
+            }
+            match nearest {
+                Some(found) => found,
+                None => {
+                    welded.insert(point, point);
+                    point
+                }
+            }
+        }
     }
 }
 
@@ -356,10 +442,14 @@ impl Polygon2D {
             area += (self.points[i].x * self.points[j].z) - (self.points[j].x * self.points[i].z);
         }
 
-        // If signed area > 0, vertices are clockwise; otherwise counter-clockwise
-        // For clockwise polygons, inward offset needs positive distance
-        // For counter-clockwise polygons, inward offset needs negative distance
-        let actual = if area > 0.0 { -distance } else { distance };
+        // A positive area means the outline runs counter-clockwise in (x, z), so
+        // the left-hand normal `(-z, x)` built below points into the polygon and
+        // the inward offset follows it; a clockwise outline turns that normal
+        // outwards and the offset has to oppose it. Either way a positive distance
+        // moves the boundary towards the inside of the polygon, which is what the
+        // callers rely on: line-width pulls a shell inwards, - line-width
+        // pushes the wall of a hole outwards into the material around it.
+        let actual = if area > 0.0 { distance } else { -distance };
 
         let epsilon = Cov::<N6>::epow();
 
@@ -381,11 +471,18 @@ impl Polygon2D {
             let len2 = vec2.length();
 
             if len1 > epsilon && len2 > epsilon {
-                let collinear = {
-                    let cross = vec1.cross(vec2).abs() / (len1 * len2);
-                    cross < epsilon
-                };
-                
+                // How far `curr` sits from the straight line through its two
+                // neighbours. A vertex on that line is not a corner: it carries no
+                // offset point of its own, and the edge it lies on is already
+                // covered by the corners at its ends. Measuring a distance rather
+                // than a sine keeps the test on the same scale as the coordinates,
+                // so a vertex that only rounding noise knocked off the line is
+                // skipped as reliably as an exactly straight one - a sine test lets
+                // those through, and their offset points then stick out of the
+                // loop they were meant to shrink.
+                let spanlen = next.sub(prev).length();
+                let collinear = spanlen <= epsilon || vec1.cross(vec2).abs() / spanlen < epsilon;
+
                 // Collinear points skip offsetting
                 if !collinear {
                     // For corners, calculate the intersection of two offset edges
@@ -483,33 +580,45 @@ impl Polygon2D {
     /// Find all intersection points of a segment with this polygon
     /// Returns a vector of intersection points with their parameter values (0.0 to 1.0)
     /// The parameter represents the position along the segment from start (0.0) to end (1.0)
+    ///
+    /// A polygon vertex that lies exactly on the segment's line is resolved by the
+    /// half-open rule `(side1 >= 0.0) != (side2 >= 0.0)`, which counts every
+    /// crossing between the two half planes and nothing else: a line passing
+    /// through a vertex crosses the outline once, a line that only touches it -
+    /// both neighbours on the same side, the infill line tangent to a circle -
+    /// crosses zero or two times, and an infill line running along an edge of the
+    /// layer keeps that edge as a printed span. Either way the crossings stay paired,
+    /// which is what lets Layer delineate read them as alternating outside/inside spans.
     pub fn intersects(&self, segment: &Segment2D) -> Vec<(f32, Point2D)> {
         let mut points = Vec::new();
         let n = self.points.len();
-        let epsilon = Cov::<N6>::epow();
 
-        for i in 0..n {
-            let j = (i + 1) % n;
-            let p1 = self.points[i];
-            let p2 = self.points[j];
-            let edge = Segment2D::new(p1, p2);
+        // The segment as a unit vector, so the tests below measure a real distance
+        // from the line and the parameter along the segment is a length.
+        let dx = segment.end.x - segment.start.x;
+        let dz = segment.end.z - segment.start.z;
+        let length = dx.hypot(dz);
+        if n >= 3 && length > Cov::<N6>::epow() {
+            let dirx = dx / length;
+            let dirz = dz / length;
+            for i in 0..n {
+                let p1 = self.points[i];
+                let p2 = self.points[(i + 1) % n];
+                // Signed distance of both ends of the edge from the segment's line.
+                let one = dirx * (p1.z - segment.start.z) - dirz * (p1.x - segment.start.x);
+                let two = dirx * (p2.z - segment.start.z) - dirz * (p2.x - segment.start.x);
 
-            if let Some(point) = segment.intersect(&edge) {
-                // Calculate parameter t along the segment
-                let dx = segment.end.x - segment.start.x;
-                let dz = segment.end.z - segment.start.z;
-                let length = dx * dx + dz * dz;
-
-                let t = if length > epsilon {
-                    ((point.x - segment.start.x) * dx + (point.z - segment.start.z) * dz) / length
-                } else {
-                    0.0
-                };
-
-                // Clamp t to [0, 1] range
-                let clamped = t.clamp(0.0, 1.0);
-
-                points.push((clamped, point));
+                if (one >= 0.0) != (two >= 0.0) {
+                    let along = one / (one - two);
+                    let point = Point2D::new(
+                        p1.x + along * (p2.x - p1.x),
+                        p1.z + along * (p2.z - p1.z),
+                    );
+                    // Parameter along the segment, clamped the way the crossings of an
+                    // infill line have to be ordered.
+                    let position = (dirx * (point.x - segment.start.x) + dirz * (point.z - segment.start.z)) / length;
+                    points.push((position.clamp(0.0, 1.0), point));
+                }
             }
         }
 

@@ -1,3 +1,4 @@
+use std::mem;
 use thiserror::Error;
 use thdfiler::tris::{Mat4, Mesh, Topology};
 use thdfiler::util::math::{identitied, transpoint};
@@ -199,6 +200,19 @@ impl<'a> Slicer<'a> {
                 // Calculate the layer index range that this triangle intersects.
                 let (sta_i, end_i) = self.config.range(min_y, max_y);
 
+                // The direction the cut runs in, taken from the triangle's own
+                // normal: the plane's normal crossed with it, which in the (x, z)
+                // plane is `(-n.z, n.x)`. The order the two ends come out of the
+                // edge loop in is not enough - for an edge that lies in the plane
+                // it is as likely to come out one way as the other, and then the
+                // two faces that meet along that edge hand it over the same way
+                // round instead of opposing each other and cancelling out.
+                let (ax, az) = (v1[0] - v0[0], v1[2] - v0[2]);
+                let (bx, bz) = (v2[0] - v0[0], v2[2] - v0[2]);
+                let (ay, by) = (v1[1] - v0[1], v2[1] - v0[1]);
+                let direct = [-(ax * by - ay * bx), ay * bz - az * by];
+                let (dirx, dirz) = (direct[0], direct[1]);
+
                 // Resizes `pileups` so the slots `start..=end` exist; it has to
                 // happen before the loop below takes its mutable borrow.
                 if pileups.len() <= end_i {
@@ -214,7 +228,17 @@ impl<'a> Slicer<'a> {
                     let mut points = [Point2D::new(0.0, 0.0); 3];
                     let mut count = 0usize;
                     let y_hig = self.config.height(index);
-    
+
+                    // A triangle that lies in the plane is a face of the cross
+                    // section rather than part of its outline: cutting it would
+                    // hand over an edge of its own triangulation instead. The
+                    // faces around it share the edges of that face and carry the
+                    // outline. The test has to allow the rounding that leaves a
+                    // face meant to be flat a hair off the plane, otherwise the
+                    // triangles of a face flush with the bed - one the object
+                    // rests on - cut up the loop they should only bound.
+                    if Cov(min_y) == Cov(y_hig) && Cov(max_y) == Cov(y_hig) { continue; }
+
                     for (sta, end) in edges {
                         let y_sta = sta[1];
                         let y_end = end[1];
@@ -239,12 +263,16 @@ impl<'a> Slicer<'a> {
                     }
     
                     if count >= 2 {
-                        let first = points[0];
+                        let mut first = points[0];
                         let mut last = points[count - 1];
                         if first == last {
                             last = points[count - 2];
                         }
                         if first != last {
+                            // Material on the left of the direction of travel.
+                            if (last.x - first.x) * dirx + (last.z - first.z) * dirz < 0.0 {
+                                mem::swap(&mut first, &mut last);
+                            }
                             pileup.push(Segment2D::new(first, last));
                         }
                     }

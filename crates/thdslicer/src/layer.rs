@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use super::Config;
 use super::infill::*;
 use super::geometry::*;
@@ -79,8 +78,9 @@ impl <'a> Layer<'a> {
                 }
             };
 
-            // Infill segment hit contour points
-            let mut infhits: Vec<Vec<(Point2D, bool, f32)>> = Vec::with_capacity(infills.len());
+            // Infill segment hit contour points, one bucket per infill line, filled
+            // with the crossings of every contour.
+            let mut infhits: Vec<Vec<(f32, Point2D)>> = vec![Vec::new(); infills.len()];
 
             for i in 0..n {
                 // Use the left edge center of bounding box as test point
@@ -91,8 +91,11 @@ impl <'a> Layer<'a> {
                     (bounding.0.z + bounding.1.z) / 2.0,  // center z
                 );
 
-                // Count ray intersections with all other contours
-                // Ray casting: from test point in positive x direction
+                // Count ray intersections with all other contours.
+                // Ray casting: from test point in positive x direction. An even
+                // count means the contour is not enclosed by any other, so the
+                // material it bounds is solid; an odd count means it is a hole, or
+                // an island inside a hole, one level down.
                 let mut counts: usize = 0;
                 for j in 0..n {
                     if i != j {
@@ -134,12 +137,8 @@ impl <'a> Layer<'a> {
 
                 // Clip infill segments based on contour levels and mark empty travel
                 for (i, infill) in infills.iter().enumerate() {
-                    let points = contour.contour.intersects(infill);
-                    if infhits.len() <= i {
-                        infhits.push(vec![]);
-                    }
-                    for (t, p) in points {
-                        infhits[i].push((p, contour.outer, t));
+                    for hit in contour.contour.intersects(infill) {
+                        infhits[i].push(hit);
                     }
                 }
             }
@@ -147,24 +146,20 @@ impl <'a> Layer<'a> {
             for infhit in infhits.iter_mut() {
                 let n = infhit.len();
                 if n > 0 {
-                    infhit.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
-                    // Pair consecutive crossings along the infill line; the segment
-                    // between the last and first crossing lies outside the material,
-                    // so the wrap-around pair is intentionally skipped
-                    for i in 0..n - 1 {
-                        let j = i + 1;
-                        let k = (i + n - 1) % n;
-                        let curr = infhit[i];
-                        let next = infhit[j];
-                        let prev = infhit[k];
-                        let fill = if curr.1 && !next.1 {
-                            true
-                        } else if !curr.1 && next.1 {
-                            !prev.1
-                        } else {
-                            curr.1
-                        };
-                        self.infills.push((fill, Segment2D::new(curr.0, next.0)));
+                    infhit.sort_by(|a, b| a.0.total_cmp(&b.0));
+                    // Pair consecutive crossings along the infill line: the line
+                    // enters the material at the first crossing, leaves it at the
+                    // second, and so on, because every contour of the layer - an
+                    // outer wall, a hole, an island inside that hole - is part of
+                    // the same even-odd fill. The span before the first crossing and
+                    // the one after the last are outside the part and are skipped.
+                    for (i, pair) in infhit.windows(2).enumerate() {
+                        let segment = Segment2D::new(pair[0].1, pair[1].1);
+                        // A span of no length is a line that only grazed the
+                        // outline: it neither extrudes nor travels.
+                        if segment.start != segment.end {
+                            self.infills.push((i % 2 == 0, segment));
+                        }
                     }
                 }
             }
@@ -172,22 +167,55 @@ impl <'a> Layer<'a> {
     }
 
     /// Connect line segments into closed contours
-    pub fn adjacence(&mut self, segments: Vec<Segment2D>) {
+    pub fn adjacence(&mut self, mut segments: Vec<Segment2D>) {
         let mut contours = Vec::new();
         let mut consumes = vec![false; segments.len()];
 
         // Build adjacency map
-        let mut adjacency: HashMap<Point2D, Vec<(usize, bool)>> = HashMap::new();
+        let mut adjacency: QikMap<Point2D, Vec<(usize, bool)>> = QikMap::default();
 
         let n = segments.len();
 
-        for (i, curr) in segments.iter().enumerate() {
-            let prev = segments[(i + n - 1) % n];
-            let sees = curr.start == prev.end && curr.end == prev.start;
-            let ssee = curr.start == prev.start && curr.end == prev.end;
-            if sees || ssee {
+        // The ends are welded onto shared points on the way in. The two triangles
+        // that met along an edge interpolate their shared crossing from opposite
+        // ends, so their results agree only to within rounding, and the map below
+        // is keyed on the rounded coordinate: unwelded, the two can fall either
+        // side of a key boundary, the pair is then never joined, the loop stays
+        // open and every segment of the contour it belongs to is dropped.
+        let mut welded: QikMap<Point2D, Point2D> = QikMap::default();
+
+        // The grid `Point2D` hashes and compares on, so that the two ends of a
+        // segment are keyed the same way everywhere.
+        let cell = |point: Point2D| (Cov::<E4>(point.x).hash(), Cov::<E4>(point.z).hash());
+
+        // Segments already handed over, by the direction they run in. A segment
+        // that comes back the other way is the same edge seen from the far side:
+        // the material only touches the layer plane there, so the two of them
+        // bound nothing and neither belongs to a contour. A segment that comes
+        // back the same way is a face the mesh carries twice, and one copy is
+        // enough. Both are decided here rather than by looking at the segment
+        // before, which only finds a pair that happened to be piled up next to
+        // each other.
+        let mut handed: QikMap<(i64, i64, i64, i64), usize> = QikMap::default();
+
+        for i in 0..n {
+            let mut curr = segments[i];
+            curr.start = Qik::weld(&mut welded, curr.start);
+            curr.end = Qik::weld(&mut welded, curr.end);
+            segments[i] = curr;
+
+            let (sx, sz) = cell(curr.start);
+            let (ex, ez) = cell(curr.end);
+            if let Some(&other) = handed.get(&(ex, ez, sx, sz)) {
+                // Handed over from the far side: the pair cancels.
+                consumes[i] = true;
+                consumes[other] = true;
+                handed.remove(&(ex, ez, sx, sz));
+            } else if handed.contains_key(&(sx, sz, ex, ez)) {
+                // The same segment again.
                 consumes[i] = true;
             } else {
+                handed.insert((sx, sz, ex, ez), i);
                 adjacency.entry(curr.start)
                     .or_default()
                     .push((i, true));
@@ -220,9 +248,17 @@ impl <'a> Layer<'a> {
                     cmax.z = cmax.z.max(last.z);
                 }
 
-                loop {
-                    contour.push(current.end);
+                // Twice the signed area, accumulated while the points are pushed.
+                // It is the winding of the contour, which tells which way
+                // [`Polygon2D::offset`] moves the walls, so carrying it along here
+                // saves a second walk over the finished contour.
+                let mut doubled = 0.0;
+                let mut previous = current.start;
 
+                loop {
+                    doubled += previous.x * current.end.z - current.end.x * previous.z;
+                    previous = current.end;
+                    contour.push(current.end);
                     if let Some(last) = contour.points.last() {
                         // Update contour bounding box with current end point
                         cmin.x = cmin.x.min(last.x);
@@ -260,6 +296,15 @@ impl <'a> Layer<'a> {
                     // Can close the contour, first and last point are the same
                     // Remove the last point to avoid duplication
                     contour.points.pop();
+                    // Every contour is stored counter-clockwise in the (x, z)
+                    // plane, whatever direction the triangles it was stitched from
+                    // happened to hand it over in. A layer plane that runs exactly
+                    // through a flat cap is cut out of the cap's own edges and comes
+                    // out the other way round, which would otherwise flip the
+                    // perimeters of that layer outwards.
+                    if doubled < 0.0 {
+                        contour.points.reverse();
+                    }
 
                     // Update layer bounding box with this contour's bounding box
                     lmin.x = lmin.x.min(cmin.x);
