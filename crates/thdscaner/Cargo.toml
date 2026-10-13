@@ -1,0 +1,10 @@
+[package]
+name = "thdscaner"
+version = "0.0.1"
+authors = ["fn-a <mr.fna.co@gmail.com>"]
+edition = "2024"
+repository = "https://github.com/fn-a/thdmaker"
+description = "3D scanning: turning captures of a real object into a 3D digital model"
+license = "MIT"
+
+[dependencies]

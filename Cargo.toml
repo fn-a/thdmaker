@@ -12,6 +12,7 @@ members = [
     ".",
     "crates/thdfiler",
     "crates/thdslicer",
+    "crates/thdscaner",
     "crates/thdviewer",
 ]
 resolver = "2"
@@ -20,6 +21,7 @@ resolver = "2"
 glob = "^0.3"
 thdfiler = { workspace = true }
 thdslicer = { workspace = true }
+thdscaner = { workspace = true }
 thdviewer = { workspace = true }
 bevy = { workspace = true }
 
@@ -37,4 +39,5 @@ glam = { version = "^0.32" }
 thiserror = { version = "^2.0" }
 thdfiler = { path = "crates/thdfiler", version = "0.0.5" }
 thdslicer = { path = "crates/thdslicer", version = "0.0.5" }
+thdscaner = { path = "crates/thdscaner", version = "0.0.1" }
 thdviewer = { path = "crates/thdviewer", version = "0.0.5" }

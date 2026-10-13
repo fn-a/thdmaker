@@ -21,9 +21,10 @@ THD Maker is a robust, easy-to-use application designed for 3D printing workflow
 
 - **[`crates/thdfiler`](crates/thdfiler/README.md)**: 3D printing file I/O (AMF, STL, 3MF, GCode)
 - **[`crates/thdslicer`](crates/thdslicer/README.md)**: Slicing logic (mesh slicing, layering, infill, G-code generation)
+- **[`crates/thdscaner`](crates/thdscaner/README.md)**: 3D scanning (captures of a real object into a 3D digital model)
 - **[`crates/thdviewer`](crates/thdviewer/README.md)**: Bevy-based viewer UI and interaction
 
-Dependency chain: `thdviewer` → `thdslicer` → `thdfiler`.
+Dependency chain: `thdviewer` → `thdslicer`/`thdscaner` → `thdfiler`.
 
 ## File Format Reference
 
