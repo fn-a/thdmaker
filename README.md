@@ -22,9 +22,10 @@ THD Maker is a robust, easy-to-use application designed for 3D printing workflow
 - **[`crates/thdfiler`](crates/thdfiler/README.md)**: 3D printing file I/O (AMF, STL, 3MF, GCode)
 - **[`crates/thdslicer`](crates/thdslicer/README.md)**: Slicing logic (mesh slicing, layering, infill, G-code generation)
 - **[`crates/thdscaner`](crates/thdscaner/README.md)**: 3D scanning (captures of a real object into a 3D digital model)
+- **[`crates/thdsimuer`](crates/thdsimuer/README.md)**: 3D simulation (verifying a 3D model by simulating it in its intended environment)
 - **[`crates/thdviewer`](crates/thdviewer/README.md)**: Bevy-based viewer UI and interaction
 
-Dependency chain: `thdviewer` → `thdslicer`/`thdscaner` → `thdfiler`.
+Dependency chain: `thdviewer` → `thdslicer`/`thdscaner`/`thdsimuer` → `thdfiler`.
 
 ## File Format Reference
 
@@ -113,3 +114,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Slic3r/Slic3r](https://github.com/Slic3r/Slic3r)
 - [Klipper3d/klipper](https://github.com/Klipper3d/klipper)
 - [MarlinFirmware/Marlin](https://github.com/MarlinFirmware/Marlin)
+
+
+### 3D Model Datasets
+
+- [idealab-isu/Slice-100K](https://github.com/idealab-isu/Slice-100K)
+- [thingi10k/thingi10k](https://github.com/thingi10k/thingi10k)
+- [allenai/objaverse-xl](https://github.com/allenai/objaverse-xl)

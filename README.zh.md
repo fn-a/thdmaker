@@ -21,9 +21,10 @@ THD Maker 是一个功能强大的应用，专为 3D 打印工作流设计，包
 - **[`crates/thdfiler`](crates/thdfiler/README.zh.md)**：3D 打印相关文件读写（AMF、STL、3MF、GCode）
 - **[`crates/thdslicer`](crates/thdslicer/README.zh.md)**：切片逻辑（网格切片、分层、填充、G-code 生成）
 - **[`crates/thdscaner`](crates/thdscaner/README.zh.md)**：三维扫描（把真实物体扫描成三维数字模型）
+- **[`crates/thdsimuer`](crates/thdsimuer/README.zh.md)**：三维仿真（在预期使用环境中对三维模型进行仿真验证）
 - **[`crates/thdviewer`](crates/thdviewer/README.zh.md)**：基于 Bevy 的界面显示与操作
 
-依赖关系：`thdviewer` → `thdslicer`/`thdscaner` → `thdfiler`。
+依赖关系：`thdviewer` → `thdslicer`/`thdscaner`/`thdsimuer` → `thdfiler`。
 
 ## 文件格式参考
 
@@ -112,3 +113,9 @@ cargo add thdmaker
 - [Slic3r/Slic3r](https://github.com/Slic3r/Slic3r)
 - [Klipper3d/klipper](https://github.com/Klipper3d/klipper)
 - [MarlinFirmware/Marlin](https://github.com/MarlinFirmware/Marlin)
+
+### 三维模型数据集
+
+- [idealab-isu/Slice-100K](https://github.com/idealab-isu/Slice-100K)
+- [thingi10k/thingi10k](https://github.com/thingi10k/thingi10k)
+- [allenai/objaverse-xl](https://github.com/allenai/objaverse-xl)

@@ -1,0 +1,10 @@
+[package]
+name = "thdsimuer"
+version = "0.0.1"
+authors = ["fn-a <mr.fna.co@gmail.com>"]
+edition = "2024"
+repository = "https://github.com/fn-a/thdmaker"
+description = "3D simulation: verifying a 3D model by simulating it in its intended environment"
+license = "MIT"
+
+[dependencies]
