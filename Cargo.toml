@@ -1,6 +1,6 @@
 [package]
 name = "thdmaker"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["fn-a <mr.fna.co@gmail.com>"]
 edition = "2024"
 repository = "https://github.com/fn-a/thdmaker"
@@ -39,8 +39,8 @@ bevy_math = { version = "^0.19" }
 bevy_mesh = { version = "^0.19" }
 glam = { version = "^0.32" }
 thiserror = { version = "^2.0" }
-thdfiler = { path = "crates/thdfiler", version = "0.0.5" }
-thdslicer = { path = "crates/thdslicer", version = "0.0.5" }
+thdfiler = { path = "crates/thdfiler", version = "0.0.6" }
+thdslicer = { path = "crates/thdslicer", version = "0.0.6" }
 thdscaner = { path = "crates/thdscaner", version = "0.0.1" }
 thdsimuer = { path = "crates/thdsimuer", version = "0.0.1" }
-thdviewer = { path = "crates/thdviewer", version = "0.0.5" }
+thdviewer = { path = "crates/thdviewer", version = "0.0.6" }
